@@ -1,8 +1,7 @@
 # CRM para Freelancers y Agencias
 
 Monorepo de un CRM orientado a freelancers y pequeñas agencias de software,
-construido como **monolito modular**. El contexto completo del proyecto está en
-[`CLAUDE.md`](./CLAUDE.md).
+construido como **monolito modular**.
 
 ## Stack
 
