@@ -26,3 +26,8 @@ npm-debug.log*
 # Caché de herramientas
 .eslintcache
 *.tsbuildinfo
+
+# Claude / contexto local
+.claude/
+CLAUDE.md
+CRM-Freelancers-Contexto-ClaudeCode.md
