@@ -1,0 +1,447 @@
+// CRM Freelancers — esquema de datos (monolito modular).
+// Una sola base de datos PostgreSQL respalda todos los módulos.
+// Las fronteras entre módulos se respetan en la capa de servicios,
+// no a nivel de esquema. Los modelos se agrupan por módulo con comentarios.
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  runtime      = "nodejs"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── auth / users ─────────────────────────────
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(ADMIN)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Datos propiedad de la cuenta (aislamiento por usuario).
+  companies      Company[]
+  contacts       Contact[]
+  deals          Deal[]
+  proposals      Proposal[]
+  projects       Project[]
+  activities     Activity[]
+  tasks          Task[]
+  invoices       Invoice[]
+  tags           Tag[]
+  attachments    Attachment[]
+  notifications  Notification[]
+  companyProfile CompanyProfile?
+  settings       Setting[]
+}
+
+// ───────────────────────────── settings ─────────────────────────────
+
+// Datos de empresa del usuario usados para emitir facturas.
+model CompanyProfile {
+  id           String   @id @default(uuid())
+  businessName String
+  taxId        String?
+  email        String?
+  phone        String?
+  address      String?
+  logoUrl      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String @unique
+}
+
+// Pares clave/valor de configuración por usuario.
+model Setting {
+  id        String   @id @default(uuid())
+  key       String
+  value     String
+  updatedAt DateTime @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  @@unique([ownerId, key])
+}
+
+// ───────────────────────────── contacts ─────────────────────────────
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  website   String?
+  industry  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  contacts Contact[]
+
+  @@index([ownerId])
+}
+
+model Contact {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String?
+  email     String?
+  phone     String?
+  position  String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  companyId String?
+
+  deals      Deal[]
+  proposals  Proposal[]
+  activities Activity[]
+  tasks      Task[]
+
+  @@index([ownerId])
+  @@index([companyId])
+}
+
+// ───────────────────────────── deals (pipeline) ─────────────────────────────
+
+enum DealStage {
+  NEW
+  CONTACTED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+model Deal {
+  id            String    @id @default(uuid())
+  title         String
+  value         Decimal   @default(0) @db.Decimal(12, 2)
+  stage         DealStage @default(NEW)
+  expectedClose DateTime?
+  lostReason    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  contactId String?
+
+  proposals    Proposal[]
+  activities   Activity[]
+  tasks        Task[]
+  project      Project?
+  stageHistory DealStageHistory[]
+
+  @@index([ownerId])
+  @@index([stage])
+}
+
+// Historial de cambios de etapa (auditoría del avance).
+model DealStageHistory {
+  id        String    @id @default(uuid())
+  fromStage DealStage?
+  toStage   DealStage
+  changedAt DateTime  @default(now())
+
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String
+
+  @@index([dealId])
+}
+
+// ───────────────────────────── proposals ─────────────────────────────
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+}
+
+model Proposal {
+  id        String         @id @default(uuid())
+  title     String
+  status    ProposalStatus @default(DRAFT)
+  currency  String         @default("USD")
+  total     Decimal        @default(0) @db.Decimal(12, 2)
+  notes     String?
+  sentAt    DateTime?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  contactId String?
+
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  dealId String?
+
+  items ProposalItem[]
+
+  @@index([ownerId])
+}
+
+model ProposalItem {
+  id          String  @id @default(uuid())
+  description String
+  quantity    Decimal @default(1) @db.Decimal(12, 2)
+  unitPrice   Decimal @default(0) @db.Decimal(12, 2)
+
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  proposalId String
+
+  @@index([proposalId])
+}
+
+// ───────────────────────────── projects ─────────────────────────────
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  // Un proyecto suele derivar de una oportunidad ganada.
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  dealId String? @unique
+
+  milestones Milestone[]
+  invoices   Invoice[]
+
+  @@index([ownerId])
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+}
+
+model Milestone {
+  id      String          @id @default(uuid())
+  title   String
+  dueDate DateTime?
+  status  MilestoneStatus @default(PENDING)
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  @@index([projectId])
+}
+
+// ───────────────────────────── activities & tasks ─────────────────────────────
+
+enum ActivityType {
+  NOTE
+  CALL
+  EMAIL
+  MEETING
+}
+
+model Activity {
+  id        String       @id @default(uuid())
+  type      ActivityType @default(NOTE)
+  content   String
+  createdAt DateTime     @default(now())
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String?
+
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String?
+
+  @@index([ownerId])
+}
+
+enum TaskStatus {
+  PENDING
+  DONE
+}
+
+model Task {
+  id        String     @id @default(uuid())
+  title     String
+  dueDate   DateTime?
+  status    TaskStatus @default(PENDING)
+  createdAt DateTime   @default(now())
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String?
+
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String?
+
+  @@index([ownerId])
+  @@index([dueDate])
+}
+
+// ───────────────────────────── invoices ─────────────────────────────
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  OVERDUE
+}
+
+model Invoice {
+  id        String        @id @default(uuid())
+  number    String
+  status    InvoiceStatus @default(DRAFT)
+  currency  String        @default("USD")
+  total     Decimal       @default(0) @db.Decimal(12, 2)
+  issuedAt  DateTime?
+  dueDate   DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  payments Payment[]
+
+  @@unique([ownerId, number])
+  @@index([ownerId])
+  @@index([status])
+}
+
+model Payment {
+  id     String   @id @default(uuid())
+  amount Decimal  @db.Decimal(12, 2)
+  paidAt DateTime @default(now())
+  method String?
+
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId String
+
+  @@index([invoiceId])
+}
+
+// ───────────────────────────── tags ─────────────────────────────
+
+enum TaggableType {
+  CONTACT
+  DEAL
+}
+
+model Tag {
+  id    String  @id @default(uuid())
+  name  String
+  color String?
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  taggables Taggable[]
+
+  @@unique([ownerId, name])
+}
+
+// Relación polimórfica: una etiqueta aplicada a un contacto u oportunidad.
+model Taggable {
+  id         String       @id @default(uuid())
+  entityType TaggableType
+  entityId   String
+
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId String
+
+  @@unique([tagId, entityType, entityId])
+  @@index([entityType, entityId])
+}
+
+// ───────────────────────────── files ─────────────────────────────
+
+enum AttachableType {
+  CONTACT
+  DEAL
+  PROJECT
+}
+
+model Attachment {
+  id         String         @id @default(uuid())
+  filename   String
+  url        String
+  mimeType   String?
+  size       Int?
+  entityType AttachableType
+  entityId   String
+  createdAt  DateTime       @default(now())
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  @@index([ownerId])
+  @@index([entityType, entityId])
+}
+
+// ───────────────────────────── notifications ─────────────────────────────
+
+enum NotificationType {
+  REMINDER
+  DUE_DATE
+  STAGE_CHANGE
+  INVOICE_OVERDUE
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  message   String
+  link      String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([userId, read])
+}
