@@ -171,7 +171,11 @@ export class DealsService {
     await this.prisma.deal.delete({ where: { id } });
   }
 
-  private async assertOwned(ownerId: string, id: string): Promise<void> {
+  /**
+   * Verifica que la oportunidad exista y pertenezca a la cuenta. Público para
+   * que otros módulos (proposals, projects…) validen el dealId que reciben.
+   */
+  async assertOwned(ownerId: string, id: string): Promise<void> {
     const found = await this.prisma.deal.findFirst({
       where: { id, ownerId },
       select: { id: true },

@@ -1,0 +1,187 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+
+import { PrismaService } from '../../prisma/prisma.service';
+import { ContactsService } from '../contacts/contacts.service';
+import { DealsService } from '../deals/deals.service';
+import { Proposal } from '../../generated/prisma/client';
+import { ChangeStatusDto } from './dto/change-status.dto';
+import { CreateProposalDto } from './dto/create-proposal.dto';
+import { ProposalItemDto } from './dto/proposal-item.dto';
+import { QueryProposalsDto } from './dto/query-proposals.dto';
+import { UpdateItemsDto } from './dto/update-items.dto';
+import { UpdateProposalDto } from './dto/update-proposal.dto';
+
+/**
+ * Gestión de propuestas. Aislada por ownerId. El total NUNCA se recibe del
+ * cliente: se calcula a partir de los ítems (cantidad × precio). El contacto y
+ * la oportunidad asociados se validan vía sus servicios, no sus tablas.
+ */
+@Injectable()
+export class ProposalsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly contacts: ContactsService,
+    private readonly deals: DealsService,
+  ) {}
+
+  async create(ownerId: string, dto: CreateProposalDto): Promise<Proposal> {
+    await this.assertRelations(ownerId, dto.contactId, dto.dealId);
+    const items = dto.items ?? [];
+
+    return this.prisma.proposal.create({
+      data: {
+        ownerId,
+        title: dto.title,
+        currency: dto.currency ?? 'USD',
+        notes: dto.notes ?? null,
+        contactId: dto.contactId ?? null,
+        dealId: dto.dealId ?? null,
+        total: this.computeTotal(items),
+        items: { create: items.map((i) => this.toItemData(i)) },
+      },
+      include: { items: true },
+    });
+  }
+
+  findAll(ownerId: string, query: QueryProposalsDto): Promise<Proposal[]> {
+    const { status, contactId, dealId, search } = query;
+    return this.prisma.proposal.findMany({
+      where: {
+        ownerId,
+        ...(status ? { status } : {}),
+        ...(contactId ? { contactId } : {}),
+        ...(dealId ? { dealId } : {}),
+        ...(search
+          ? { title: { contains: search, mode: 'insensitive' } }
+          : {}),
+      },
+      include: { contact: true, deal: true },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  /** Detalle de la propuesta: ítems, contacto y oportunidad. */
+  async findOne(ownerId: string, id: string) {
+    const proposal = await this.prisma.proposal.findFirst({
+      where: { id, ownerId },
+      include: { items: true, contact: true, deal: true },
+    });
+    if (!proposal) {
+      throw new NotFoundException('Propuesta no encontrada');
+    }
+    return proposal;
+  }
+
+  async update(
+    ownerId: string,
+    id: string,
+    dto: UpdateProposalDto,
+  ): Promise<Proposal> {
+    await this.assertOwned(ownerId, id);
+    await this.assertRelations(ownerId, dto.contactId, dto.dealId);
+    return this.prisma.proposal.update({
+      where: { id },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title } : {}),
+        ...(dto.currency !== undefined ? { currency: dto.currency } : {}),
+        ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+        ...(dto.contactId !== undefined ? { contactId: dto.contactId } : {}),
+        ...(dto.dealId !== undefined ? { dealId: dto.dealId } : {}),
+      },
+      include: { items: true },
+    });
+  }
+
+  /** Reemplaza todos los ítems y recalcula el total de forma atómica. */
+  async replaceItems(
+    ownerId: string,
+    id: string,
+    dto: UpdateItemsDto,
+  ): Promise<Proposal> {
+    await this.assertOwned(ownerId, id);
+    const [, , proposal] = await this.prisma.$transaction([
+      this.prisma.proposalItem.deleteMany({ where: { proposalId: id } }),
+      this.prisma.proposalItem.createMany({
+        data: dto.items.map((i) => ({ ...this.toItemData(i), proposalId: id })),
+      }),
+      this.prisma.proposal.update({
+        where: { id },
+        data: { total: this.computeTotal(dto.items) },
+        include: { items: true },
+      }),
+    ]);
+    return proposal;
+  }
+
+  /**
+   * Cambia el estado. Al pasar a SENT por primera vez, registra sentAt.
+   */
+  async changeStatus(
+    ownerId: string,
+    id: string,
+    dto: ChangeStatusDto,
+  ): Promise<Proposal> {
+    const current = await this.prisma.proposal.findFirst({
+      where: { id, ownerId },
+      select: { sentAt: true },
+    });
+    if (!current) {
+      throw new NotFoundException('Propuesta no encontrada');
+    }
+    const markSent = dto.status === 'SENT' && !current.sentAt;
+    return this.prisma.proposal.update({
+      where: { id },
+      data: {
+        status: dto.status,
+        ...(markSent ? { sentAt: new Date() } : {}),
+      },
+    });
+  }
+
+  async remove(ownerId: string, id: string): Promise<void> {
+    await this.assertOwned(ownerId, id);
+    // Los ítems se borran en cascada (onDelete: Cascade).
+    await this.prisma.proposal.delete({ where: { id } });
+  }
+
+  /** Total = Σ(cantidad × precio), redondeado a 2 decimales. */
+  private computeTotal(items: ProposalItemDto[]): number {
+    const total = items.reduce(
+      (sum, i) => sum + (i.quantity ?? 1) * (i.unitPrice ?? 0),
+      0,
+    );
+    return Math.round(total * 100) / 100;
+  }
+
+  private toItemData(i: ProposalItemDto) {
+    return {
+      description: i.description,
+      quantity: i.quantity ?? 1,
+      unitPrice: i.unitPrice ?? 0,
+    };
+  }
+
+  /** Valida que el contacto y la oportunidad referidos sean de la cuenta. */
+  private async assertRelations(
+    ownerId: string,
+    contactId?: string,
+    dealId?: string,
+  ): Promise<void> {
+    if (contactId) {
+      await this.contacts.assertOwned(ownerId, contactId);
+    }
+    if (dealId) {
+      await this.deals.assertOwned(ownerId, dealId);
+    }
+  }
+
+  private async assertOwned(ownerId: string, id: string): Promise<void> {
+    const found = await this.prisma.proposal.findFirst({
+      where: { id, ownerId },
+      select: { id: true },
+    });
+    if (!found) {
+      throw new NotFoundException('Propuesta no encontrada');
+    }
+  }
+}
