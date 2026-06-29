@@ -79,7 +79,11 @@ export class ContactsService {
     await this.prisma.contact.delete({ where: { id } });
   }
 
-  private async assertOwned(ownerId: string, id: string): Promise<void> {
+  /**
+   * Verifica que el contacto exista y pertenezca a la cuenta. Público para que
+   * otros módulos (deals, proposals…) validen el contactId que reciben.
+   */
+  async assertOwned(ownerId: string, id: string): Promise<void> {
     const found = await this.prisma.contact.findFirst({
       where: { id, ownerId },
       select: { id: true },
