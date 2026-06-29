@@ -209,6 +209,65 @@ export class InvoicesService {
     return this.findOne(ownerId, id);
   }
 
+  // ──────────────────── lecturas para dashboard/reports ────────────────────
+
+  /**
+   * Cobros pendientes: facturas emitidas o vencidas, con su saldo (total menos
+   * pagos). Lectura pública que consumen dashboard y reports.
+   */
+  async getReceivablesSummary(ownerId: string) {
+    const invoices = await this.prisma.invoice.findMany({
+      where: { ownerId, status: { in: ['ISSUED', 'OVERDUE'] } },
+      select: { status: true, total: true, payments: { select: { amount: true } } },
+    });
+
+    let pendingTotal = 0;
+    let overdueCount = 0;
+    let overdueTotal = 0;
+    for (const inv of invoices) {
+      const paid = inv.payments.reduce((s, p) => s + Number(p.amount), 0);
+      const outstanding = Number(inv.total) - paid;
+      pendingTotal += outstanding;
+      if (inv.status === 'OVERDUE') {
+        overdueCount += 1;
+        overdueTotal += outstanding;
+      }
+    }
+
+    return {
+      pendingCount: invoices.length,
+      pendingTotal: Math.round(pendingTotal * 100) / 100,
+      overdueCount,
+      overdueTotal: Math.round(overdueTotal * 100) / 100,
+    };
+  }
+
+  /** Ingresos (pagos cobrados) en un periodo [from, to). */
+  async getIncomeForPeriod(
+    ownerId: string,
+    from: Date,
+    to: Date,
+  ): Promise<number> {
+    const agg = await this.prisma.payment.aggregate({
+      where: { invoice: { ownerId }, paidAt: { gte: from, lt: to } },
+      _sum: { amount: true },
+    });
+    return Math.round(Number(agg._sum.amount ?? 0) * 100) / 100;
+  }
+
+  /** Ingresos mes a mes para los últimos `months` meses (gráfica de reports). */
+  async getIncomeByMonth(ownerId: string, months: number) {
+    const now = new Date();
+    const result: { year: number; month: number; income: number }[] = [];
+    for (let i = months - 1; i >= 0; i--) {
+      const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i + 1, 1));
+      const income = await this.getIncomeForPeriod(ownerId, from, to);
+      result.push({ year: from.getUTCFullYear(), month: from.getUTCMonth() + 1, income });
+    }
+    return result;
+  }
+
   // ───────────────────────────── helpers ─────────────────────────────
 
   /** Genera INV-0001, INV-0002… a partir del número de facturas de la cuenta. */

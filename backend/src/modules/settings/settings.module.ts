@@ -1,6 +1,12 @@
 import { Module } from '@nestjs/common';
 
-// Módulo settings: perfil del usuario y datos de empresa para facturación.
-// Pendiente: controller, service y DTOs (class-validator).
-@Module({})
+import { SettingsController } from './settings.controller';
+import { SettingsService } from './settings.service';
+
+// Módulo settings: perfil de empresa y ajustes clave/valor por usuario.
+@Module({
+  controllers: [SettingsController],
+  providers: [SettingsService],
+  exports: [SettingsService],
+})
 export class SettingsModule {}

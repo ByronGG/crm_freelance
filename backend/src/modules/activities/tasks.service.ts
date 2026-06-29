@@ -57,6 +57,17 @@ export class TasksService {
     return task;
   }
 
+  /**
+   * Tareas pendientes con vencimiento hasta `before` (incluye vencidas).
+   * Lectura pública que consume el dashboard ("pendientes del día").
+   */
+  findPendingDueBefore(ownerId: string, before: Date): Promise<Task[]> {
+    return this.prisma.task.findMany({
+      where: { ownerId, status: 'PENDING', dueDate: { lte: before } },
+      orderBy: { dueDate: 'asc' },
+    });
+  }
+
   async update(ownerId: string, id: string, dto: UpdateTaskDto): Promise<Task> {
     await this.assertOwned(ownerId, id);
     await this.assertRelations(ownerId, dto.contactId, dto.dealId);

@@ -87,6 +87,51 @@ export class DealsService {
     });
   }
 
+  /**
+   * Resumen del pipeline para dashboard/reports: oportunidades abiertas y su
+   * valor, ganadas/perdidas, tasa de conversión y desglose por etapa. Es la
+   * lectura pública del módulo deals; los módulos de solo lectura la consumen.
+   */
+  async getPipelineSummary(ownerId: string) {
+    const grouped = await this.prisma.deal.groupBy({
+      by: ['stage'],
+      where: { ownerId },
+      _count: { _all: true },
+      _sum: { value: true },
+    });
+
+    const open: DealStage[] = ['NEW', 'CONTACTED', 'PROPOSAL', 'NEGOTIATION'];
+    let openCount = 0;
+    let openValue = 0;
+    let wonCount = 0;
+    let lostCount = 0;
+
+    const byStage = STAGE_ORDER.map((stage) => {
+      const g = grouped.find((x) => x.stage === stage);
+      const count = g?._count._all ?? 0;
+      const value = Number(g?._sum.value ?? 0);
+      if (open.includes(stage)) {
+        openCount += count;
+        openValue += value;
+      }
+      if (stage === 'WON') wonCount = count;
+      if (stage === 'LOST') lostCount = count;
+      return { stage, count, value: Math.round(value * 100) / 100 };
+    });
+
+    const closed = wonCount + lostCount;
+    const conversionRate = closed > 0 ? Math.round((wonCount / closed) * 1000) / 1000 : 0;
+
+    return {
+      openCount,
+      openValue: Math.round(openValue * 100) / 100,
+      wonCount,
+      lostCount,
+      conversionRate,
+      byStage,
+    };
+  }
+
   /** Detalle de la oportunidad: contacto + historial de cambios de etapa. */
   async findOne(ownerId: string, id: string) {
     const deal = await this.prisma.deal.findFirst({

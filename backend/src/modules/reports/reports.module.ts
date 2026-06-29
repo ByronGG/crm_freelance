@@ -1,6 +1,15 @@
 import { Module } from '@nestjs/common';
 
-// Módulo reports: lecturas agregadas y exportaciones (solo consulta).
-// Consume los servicios públicos de otros módulos, nunca sus tablas.
-@Module({})
+import { DealsModule } from '../deals/deals.module';
+import { InvoicesModule } from '../invoices/invoices.module';
+import { ReportsController } from './reports.controller';
+import { ReportsService } from './reports.service';
+
+// Módulo reports: lecturas agregadas (solo consulta).
+// Importa los módulos dueños y consume sus servicios públicos, nunca sus tablas.
+@Module({
+  imports: [DealsModule, InvoicesModule],
+  controllers: [ReportsController],
+  providers: [ReportsService],
+})
 export class ReportsModule {}
