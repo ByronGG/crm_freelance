@@ -7,6 +7,7 @@ import { RegisterPage } from './features/auth/RegisterPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ContactsPage } from './features/contacts/ContactsPage'
+import { DealsBoardPage } from './features/deals/DealsBoardPage'
 
 function App() {
   return (
@@ -18,7 +19,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
-          <Route path="/deals" element={<PlaceholderPage title="Pipeline" />} />
+          <Route path="/deals" element={<DealsBoardPage />} />
           <Route
             path="/proposals"
             element={<PlaceholderPage title="Propuestas" />}

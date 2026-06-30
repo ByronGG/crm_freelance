@@ -35,6 +35,9 @@
 }
 
 :root {
+  /* Hace que los controles nativos (date, number, selects, scrollbars)
+     se rendericen acorde al tema. */
+  color-scheme: light;
   --app: #f6f7f6;
   --surface: #ffffff;
   --elevated: #ffffff;
@@ -48,6 +51,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --app: #0c0e0d;
   --surface: #151817;
   --elevated: #1b1f1d;
