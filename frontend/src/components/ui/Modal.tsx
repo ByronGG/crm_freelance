@@ -6,10 +6,16 @@ interface Props {
   open: boolean
   onClose: () => void
   title: string
+  size?: 'md' | 'lg'
   children: ReactNode
 }
 
-export function Modal({ open, onClose, title, children }: Props) {
+const SIZES = {
+  md: 'max-w-md',
+  lg: 'max-w-2xl',
+}
+
+export function Modal({ open, onClose, title, size = 'md', children }: Props) {
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -29,7 +35,7 @@ export function Modal({ open, onClose, title, children }: Props) {
       onMouseDown={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-line bg-surface p-5"
+        className={`w-full ${SIZES[size]} rounded-2xl border border-line bg-surface p-5`}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">

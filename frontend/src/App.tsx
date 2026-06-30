@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ContactsPage } from './features/contacts/ContactsPage'
 import { DealsBoardPage } from './features/deals/DealsBoardPage'
+import { ProposalsPage } from './features/proposals/ProposalsPage'
 
 function App() {
   return (
@@ -20,10 +21,7 @@ function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/deals" element={<DealsBoardPage />} />
-          <Route
-            path="/proposals"
-            element={<PlaceholderPage title="Propuestas" />}
-          />
+          <Route path="/proposals" element={<ProposalsPage />} />
           <Route
             path="/projects"
             element={<PlaceholderPage title="Proyectos" />}

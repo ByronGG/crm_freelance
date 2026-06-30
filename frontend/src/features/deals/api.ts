@@ -16,6 +16,12 @@ export async function getBoard(): Promise<BoardColumn[]> {
   return data
 }
 
+/** Listado plano de oportunidades (para selectores en otros módulos). */
+export async function listDeals(): Promise<Deal[]> {
+  const { data } = await api.get<Deal[]>('/deals')
+  return data
+}
+
 export async function createDeal(input: DealInput): Promise<Deal> {
   const { data } = await api.post<Deal>('/deals', toPayload(input))
   return data
