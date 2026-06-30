@@ -6,6 +6,7 @@ import { LoginPage } from './features/auth/LoginPage'
 import { RegisterPage } from './features/auth/RegisterPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { ContactsPage } from './features/contacts/ContactsPage'
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/contacts" element={<PlaceholderPage title="Contactos" />} />
+          <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/deals" element={<PlaceholderPage title="Pipeline" />} />
           <Route
             path="/proposals"
