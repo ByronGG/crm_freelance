@@ -77,6 +77,20 @@ export class AuthService {
     return this.buildAuthResponse(user);
   }
 
+  /** Devuelve el perfil completo del usuario autenticado (incluye el nombre). */
+  async me(userId: string): Promise<PublicUser> {
+    const user = await this.users.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Sesión no válida');
+    }
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    };
+  }
+
   /** Verifica el refresh token y emite un par de tokens nuevo. */
   async refresh(refreshToken: string): Promise<AuthResponse> {
     let payload: TokenPayload;

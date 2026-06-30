@@ -11,7 +11,6 @@ import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import type { AuthUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -44,11 +43,11 @@ export class AuthController {
     return this.auth.refresh(dto.refreshToken);
   }
 
-  /** Devuelve el usuario autenticado (verifica que el access token sirve). */
+  /** Devuelve el perfil del usuario autenticado (id, email, nombre, rol). */
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@CurrentUser() user: AuthUser) {
-    return user;
+  me(@CurrentUser('id') userId: string) {
+    return this.auth.me(userId);
   }
 }

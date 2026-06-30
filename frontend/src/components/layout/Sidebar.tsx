@@ -1,0 +1,63 @@
+import { NavLink } from 'react-router-dom'
+import {
+  Briefcase,
+  FileText,
+  Home,
+  ListTodo,
+  Receipt,
+  Settings,
+  Target,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
+
+interface NavItem {
+  to: string
+  label: string
+  icon: LucideIcon
+}
+
+const NAV: NavItem[] = [
+  { to: '/', label: 'Inicio', icon: Home },
+  { to: '/contacts', label: 'Contactos', icon: Users },
+  { to: '/deals', label: 'Pipeline', icon: Target },
+  { to: '/proposals', label: 'Propuestas', icon: FileText },
+  { to: '/projects', label: 'Proyectos', icon: Briefcase },
+  { to: '/tasks', label: 'Tareas', icon: ListTodo },
+  { to: '/invoices', label: 'Facturas', icon: Receipt },
+  { to: '/settings', label: 'Ajustes', icon: Settings },
+]
+
+export function Sidebar() {
+  return (
+    <aside className="flex w-60 flex-col border-r border-line bg-surface">
+      <div className="flex items-center gap-2.5 px-5 py-4">
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500 text-white">
+          <Home size={16} />
+        </span>
+        <span className="text-[15px] font-medium text-fg">CRM</span>
+      </div>
+
+      <nav className="flex-1 space-y-0.5 px-3 py-2">
+        {NAV.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) =>
+              [
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                isActive
+                  ? 'bg-brand-soft font-medium text-brand-fg'
+                  : 'text-muted hover:bg-app hover:text-fg',
+              ].join(' ')
+            }
+          >
+            <Icon size={18} />
+            {label}
+          </NavLink>
+        ))}
+      </nav>
+    </aside>
+  )
+}

@@ -1,51 +1,41 @@
-import { Route, Routes } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { api } from './lib/api'
+import { Navigate, Route, Routes } from 'react-router-dom'
 
-interface Health {
-  status: string
-  service: string
-  timestamp: string
-}
-
-function Home() {
-  // Verifica la conexión con el backend (GET /api/health).
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['health'],
-    queryFn: async () => (await api.get<Health>('/health')).data,
-  })
-
-  return (
-    <main className="min-h-screen bg-slate-50 text-slate-800 flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-        <h1 className="text-2xl font-semibold tracking-tight">CRM Freelancers</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Andamiaje listo. Empieza a construir los módulos.
-        </p>
-
-        <div className="mt-6 rounded-lg bg-slate-50 border border-slate-200 p-4 text-sm">
-          <p className="font-medium text-slate-700">Estado del backend</p>
-          {isLoading && <p className="text-slate-500">Comprobando…</p>}
-          {isError && (
-            <p className="text-red-600">
-              Sin conexión. Levanta el backend en el puerto 3000.
-            </p>
-          )}
-          {data && (
-            <p className="text-emerald-600">
-              {data.status} · {data.service}
-            </p>
-          )}
-        </div>
-      </div>
-    </main>
-  )
-}
+import { AppLayout } from './components/layout/AppLayout'
+import { ProtectedRoute } from './features/auth/ProtectedRoute'
+import { LoginPage } from './features/auth/LoginPage'
+import { RegisterPage } from './features/auth/RegisterPage'
+import { DashboardPage } from './pages/DashboardPage'
+import { PlaceholderPage } from './pages/PlaceholderPage'
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/contacts" element={<PlaceholderPage title="Contactos" />} />
+          <Route path="/deals" element={<PlaceholderPage title="Pipeline" />} />
+          <Route
+            path="/proposals"
+            element={<PlaceholderPage title="Propuestas" />}
+          />
+          <Route
+            path="/projects"
+            element={<PlaceholderPage title="Proyectos" />}
+          />
+          <Route path="/tasks" element={<PlaceholderPage title="Tareas" />} />
+          <Route
+            path="/invoices"
+            element={<PlaceholderPage title="Facturas" />}
+          />
+          <Route path="/settings" element={<PlaceholderPage title="Ajustes" />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
