@@ -68,6 +68,8 @@ export function ContactFormModal({ open, onClose, contact }: Props) {
       contact ? updateContact(contact.id, input) : createContact(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      // Refresca también la vista de detalle 360° si está abierta.
+      queryClient.invalidateQueries({ queryKey: ['contact'] })
       onClose()
     },
     onError: (err) => {

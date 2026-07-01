@@ -1,4 +1,10 @@
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 
 import { ProjectStatus } from '../../../generated/prisma/client';
 
@@ -7,6 +13,11 @@ export class QueryProjectsDto {
   @IsOptional()
   @IsEnum(ProjectStatus, { message: 'Estado no válido' })
   status?: ProjectStatus;
+
+  // Filtra por el contacto de la oportunidad de origen (para la vista 360°).
+  @IsOptional()
+  @IsUUID()
+  contactId?: string;
 
   @IsOptional()
   @IsString()

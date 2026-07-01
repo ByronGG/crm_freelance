@@ -6,6 +6,7 @@ import { LoginPage } from './features/auth/LoginPage'
 import { RegisterPage } from './features/auth/RegisterPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ContactsPage } from './features/contacts/ContactsPage'
+import { ContactDetailPage } from './features/contacts/ContactDetailPage'
 import { DealsBoardPage } from './features/deals/DealsBoardPage'
 import { ProposalsPage } from './features/proposals/ProposalsPage'
 import { InvoicesPage } from './features/invoices/InvoicesPage'
@@ -23,6 +24,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
+          <Route path="/contacts/:id" element={<ContactDetailPage />} />
           <Route path="/deals" element={<DealsBoardPage />} />
           <Route path="/proposals" element={<ProposalsPage />} />
           <Route path="/projects" element={<ProjectsPage />} />

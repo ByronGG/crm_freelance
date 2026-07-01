@@ -10,12 +10,14 @@ import type {
 
 interface ListParams {
   status?: ProjectStatus
+  contactId?: string
   search?: string
 }
 
 export async function listProjects(params: ListParams = {}): Promise<Project[]> {
   const query: Record<string, string> = {}
   if (params.status) query.status = params.status
+  if (params.contactId) query.contactId = params.contactId
   if (params.search) query.search = params.search
   const { data } = await api.get<Project[]>('/projects', {
     params: Object.keys(query).length ? query : undefined,
