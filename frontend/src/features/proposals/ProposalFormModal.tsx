@@ -10,6 +10,7 @@ import {
   fieldBase,
   fieldInputClass,
 } from '../../components/ui/TextField'
+import { CURRENCIES } from '../../lib/currencies'
 import { formatAmount } from '../../lib/format'
 import { listContacts } from '../contacts/api'
 import { listDeals } from '../deals/api'
@@ -17,8 +18,6 @@ import { createProposal, getProposal, updateProposal } from './api'
 import type { ItemForm, Proposal, ProposalForm } from './types'
 
 const EMPTY_ITEM: ItemForm = { description: '', quantity: '1', unitPrice: '0' }
-
-const CURRENCIES = ['USD', 'EUR', 'MXN', 'COP', 'ARS', 'CLP', 'PEN', 'BRL', 'GBP']
 
 const EMPTY: ProposalForm = {
   title: '',

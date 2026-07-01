@@ -5,10 +5,13 @@ import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { LoginPage } from './features/auth/LoginPage'
 import { RegisterPage } from './features/auth/RegisterPage'
 import { DashboardPage } from './pages/DashboardPage'
-import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ContactsPage } from './features/contacts/ContactsPage'
 import { DealsBoardPage } from './features/deals/DealsBoardPage'
 import { ProposalsPage } from './features/proposals/ProposalsPage'
+import { InvoicesPage } from './features/invoices/InvoicesPage'
+import { ProjectsPage } from './features/projects/ProjectsPage'
+import { TasksPage } from './features/tasks/TasksPage'
+import { SettingsPage } from './features/settings/SettingsPage'
 
 function App() {
   return (
@@ -22,16 +25,10 @@ function App() {
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/deals" element={<DealsBoardPage />} />
           <Route path="/proposals" element={<ProposalsPage />} />
-          <Route
-            path="/projects"
-            element={<PlaceholderPage title="Proyectos" />}
-          />
-          <Route path="/tasks" element={<PlaceholderPage title="Tareas" />} />
-          <Route
-            path="/invoices"
-            element={<PlaceholderPage title="Facturas" />}
-          />
-          <Route path="/settings" element={<PlaceholderPage title="Ajustes" />} />
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/invoices" element={<InvoicesPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>
 
