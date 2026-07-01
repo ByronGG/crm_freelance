@@ -25,6 +25,12 @@ export async function listContacts(search?: string): Promise<Contact[]> {
   return data
 }
 
+/** Detalle de un contacto con su empresa asociada (vista 360°). */
+export async function getContact(id: string): Promise<Contact> {
+  const { data } = await api.get<Contact>(`/contacts/${id}`)
+  return data
+}
+
 export async function createContact(input: ContactInput): Promise<Contact> {
   const { data } = await api.post<Contact>('/contacts', toPayload(input))
   return data

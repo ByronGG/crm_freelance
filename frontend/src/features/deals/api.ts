@@ -22,6 +22,12 @@ export async function listDeals(): Promise<Deal[]> {
   return data
 }
 
+/** Oportunidades de un contacto concreto (vista 360°). */
+export async function listDealsByContact(contactId: string): Promise<Deal[]> {
+  const { data } = await api.get<Deal[]>('/deals', { params: { contactId } })
+  return data
+}
+
 export async function createDeal(input: DealInput): Promise<Deal> {
   const { data } = await api.post<Deal>('/deals', toPayload(input))
   return data

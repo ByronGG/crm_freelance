@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pencil, Plus, Search, Trash2, Users } from 'lucide-react'
 
@@ -20,6 +21,7 @@ function initials(c: Contact): string {
 
 export function ContactsPage() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const debounced = useDebounce(search)
   const [formOpen, setFormOpen] = useState(false)
@@ -118,7 +120,8 @@ export function ContactsPage() {
                 {contacts.map((c) => (
                   <tr
                     key={c.id}
-                    className="border-b border-line last:border-0 hover:bg-app/60"
+                    onClick={() => navigate(`/contacts/${c.id}`)}
+                    className="cursor-pointer border-b border-line last:border-0 hover:bg-app/60"
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -146,7 +149,10 @@ export function ContactsPage() {
                       <div className="flex justify-end gap-1">
                         <button
                           type="button"
-                          onClick={() => openEdit(c)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openEdit(c)
+                          }}
                           aria-label="Editar"
                           className="grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-app hover:text-fg"
                         >
@@ -154,7 +160,10 @@ export function ContactsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setDeleting(c)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleting(c)
+                          }}
                           aria-label="Eliminar"
                           className="grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-app hover:text-red-600"
                         >

@@ -22,3 +22,29 @@ export function formatAmount(value: number | string, currency = 'USD'): string {
     return `${n.toFixed(2)} ${currency}`
   }
 }
+
+const dateFmt = new Intl.DateTimeFormat('es-ES', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+})
+
+const dateTimeFmt = new Intl.DateTimeFormat('es-ES', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+/** Formatea una fecha ISO como "01 jul 2026" (vacío → guion). */
+export function formatDate(value?: string | null): string {
+  if (!value) return '—'
+  return dateFmt.format(new Date(value))
+}
+
+/** Formatea fecha y hora, p. ej. "01 jul 2026, 14:30". */
+export function formatDateTime(value?: string | null): string {
+  if (!value) return '—'
+  return dateTimeFmt.format(new Date(value))
+}

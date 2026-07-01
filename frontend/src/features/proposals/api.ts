@@ -29,12 +29,14 @@ function scalarsPayload(form: ProposalForm) {
 
 interface ListParams {
   status?: ProposalStatus
+  contactId?: string
   search?: string
 }
 
 export async function listProposals(params: ListParams = {}): Promise<Proposal[]> {
   const query: Record<string, string> = {}
   if (params.status) query.status = params.status
+  if (params.contactId) query.contactId = params.contactId
   if (params.search) query.search = params.search
   const { data } = await api.get<Proposal[]>('/proposals', {
     params: Object.keys(query).length ? query : undefined,

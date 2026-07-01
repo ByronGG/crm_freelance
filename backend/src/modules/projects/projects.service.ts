@@ -68,11 +68,13 @@ export class ProjectsService {
   }
 
   findAll(ownerId: string, query: QueryProjectsDto): Promise<Project[]> {
-    const { status, search } = query;
+    const { status, contactId, search } = query;
     return this.prisma.project.findMany({
       where: {
         ownerId,
         ...(status ? { status } : {}),
+        // El proyecto deriva de una oportunidad; filtramos por su contacto.
+        ...(contactId ? { deal: { contactId } } : {}),
         ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
       },
       include: { deal: true },
