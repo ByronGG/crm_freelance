@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -50,6 +51,19 @@ export class InvoicesController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.invoices.findOne(ownerId, id);
+  }
+
+  /** Descarga la factura en PDF. */
+  @Get(':id/pdf')
+  async downloadPdf(
+    @CurrentUser('id') ownerId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<StreamableFile> {
+    const { filename, buffer } = await this.invoices.generatePdf(ownerId, id);
+    return new StreamableFile(buffer, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${filename}"`,
+    });
   }
 
   @Patch(':id')

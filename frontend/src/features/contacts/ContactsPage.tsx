@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pencil, Plus, Search, Trash2, Users } from 'lucide-react'
@@ -8,6 +8,9 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { fieldInputClass } from '../../components/ui/TextField'
 import { useDebounce } from '../../lib/useDebounce'
 import { fullName, initials } from '../../lib/names'
+import { TagChip } from '../tags/TagChip'
+import { listTags, listTagsForEntities } from '../tags/api'
+import type { Tag } from '../tags/types'
 import { ContactFormModal } from './ContactFormModal'
 import { deleteContact, listContacts } from './api'
 import type { Contact } from './types'
@@ -17,6 +20,7 @@ export function ContactsPage() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const debounced = useDebounce(search)
+  const [tagFilter, setTagFilter] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Contact | null>(null)
   const [deleting, setDeleting] = useState<Contact | null>(null)
@@ -25,6 +29,26 @@ export function ContactsPage() {
     queryKey: ['contacts', debounced],
     queryFn: () => listContacts(debounced || undefined),
   })
+
+  // Catálogo de etiquetas (para el filtro) y chips de las filas visibles.
+  const tags = useQuery({ queryKey: ['tags'], queryFn: listTags })
+  const ids = useMemo(() => (data ?? []).map((c) => c.id), [data])
+  const entityTags = useQuery({
+    queryKey: ['tags', 'entities', 'CONTACT', ids.join(',')],
+    queryFn: () => listTagsForEntities('CONTACT', ids),
+    enabled: ids.length > 0,
+  })
+
+  // Mapa contactId → etiquetas, a partir de la respuesta batch.
+  const tagsByContact = useMemo(() => {
+    const map = new Map<string, Tag[]>()
+    for (const { entityId, tag } of entityTags.data ?? []) {
+      const list = map.get(entityId) ?? []
+      list.push(tag)
+      map.set(entityId, list)
+    }
+    return map
+  }, [entityTags.data])
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteContact(id),
@@ -44,7 +68,11 @@ export function ContactsPage() {
     setFormOpen(true)
   }
 
-  const contacts = data ?? []
+  const contacts = (data ?? []).filter(
+    (c) =>
+      !tagFilter ||
+      (tagsByContact.get(c.id) ?? []).some((t) => t.id === tagFilter),
+  )
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -60,17 +88,33 @@ export function ContactsPage() {
         </Button>
       </div>
 
-      <div className="relative mt-5 max-w-sm">
-        <Search
-          size={16}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle"
-        />
-        <input
-          className={`${fieldInputClass} pl-9`}
-          placeholder="Buscar por nombre o email…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <div className="relative max-w-sm flex-1">
+          <Search
+            size={16}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle"
+          />
+          <input
+            className={`${fieldInputClass} pl-9`}
+            placeholder="Buscar por nombre o email…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        {(tags.data?.length ?? 0) > 0 && (
+          <select
+            className={`${fieldInputClass} w-44`}
+            value={tagFilter}
+            onChange={(e) => setTagFilter(e.target.value)}
+          >
+            <option value="">Todas las etiquetas</option>
+            {tags.data?.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       <div className="mt-4 overflow-hidden rounded-xl border border-line bg-surface">
@@ -87,11 +131,11 @@ export function ContactsPage() {
           <div className="grid place-items-center px-4 py-14 text-center">
             <Users size={26} className="text-subtle" />
             <p className="mt-3 text-sm font-medium text-fg">
-              {debounced ? 'Sin resultados' : 'Aún no tienes contactos'}
+              {debounced || tagFilter ? 'Sin resultados' : 'Aún no tienes contactos'}
             </p>
             <p className="mt-1 text-sm text-muted">
-              {debounced
-                ? 'Prueba con otra búsqueda.'
+              {debounced || tagFilter
+                ? 'Prueba con otra búsqueda o filtro.'
                 : 'Crea tu primer contacto para empezar.'}
             </p>
           </div>
@@ -129,6 +173,18 @@ export function ContactsPage() {
                             <p className="truncate text-xs text-subtle">
                               {c.position}
                             </p>
+                          )}
+                          {(tagsByContact.get(c.id)?.length ?? 0) > 0 && (
+                            <span className="mt-1 flex flex-wrap gap-1">
+                              {tagsByContact.get(c.id)?.slice(0, 3).map((t) => (
+                                <TagChip key={t.id} tag={t} />
+                              ))}
+                              {(tagsByContact.get(c.id)?.length ?? 0) > 3 && (
+                                <span className="text-xs text-subtle">
+                                  +{(tagsByContact.get(c.id)?.length ?? 0) - 3}
+                                </span>
+                              )}
+                            </span>
                           )}
                         </div>
                       </div>

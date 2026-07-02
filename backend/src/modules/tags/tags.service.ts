@@ -100,6 +100,23 @@ export class TagsService {
     return taggables.map((t) => t.tag);
   }
 
+  /**
+   * Etiquetas de varias entidades a la vez (para chips en listados sin N+1).
+   * Devuelve pares entityId→tag; el cliente los agrupa como necesite.
+   */
+  async listForEntities(
+    ownerId: string,
+    entityType: TaggableType,
+    entityIds: string[],
+  ): Promise<{ entityId: string; tag: Tag }[]> {
+    if (entityIds.length === 0) return [];
+    const taggables = await this.prisma.taggable.findMany({
+      where: { entityType, entityId: { in: entityIds }, tag: { ownerId } },
+      include: { tag: true },
+    });
+    return taggables.map((t) => ({ entityId: t.entityId, tag: t.tag }));
+  }
+
   private async assertOwned(ownerId: string, id: string): Promise<void> {
     const found = await this.prisma.tag.findFirst({
       where: { id, ownerId },
