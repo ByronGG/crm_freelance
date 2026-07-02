@@ -1,8 +1,9 @@
-import { LogOut, Search } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 
 import { useAuth } from '../../features/auth/AuthContext'
 import { NotificationsBell } from '../../features/notifications/NotificationsBell'
 import { initialsFromName } from '../../lib/names'
+import { GlobalSearch } from './GlobalSearch'
 import { ThemeToggle } from '../ThemeToggle'
 
 export function Topbar() {
@@ -10,10 +11,7 @@ export function Topbar() {
 
   return (
     <header className="flex items-center gap-3 border-b border-line bg-surface px-5 py-3">
-      <div className="flex h-9 max-w-md flex-1 items-center gap-2 rounded-lg border border-line bg-app px-3 text-sm text-subtle">
-        <Search size={16} />
-        <span>Buscar…</span>
-      </div>
+      <GlobalSearch />
 
       <div className="flex-1" />
 

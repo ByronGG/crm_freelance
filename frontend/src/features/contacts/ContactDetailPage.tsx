@@ -18,6 +18,8 @@ import { Button } from '../../components/ui/Button'
 import { formatAmount, formatMoney } from '../../lib/format'
 import { fullName, initials } from '../../lib/names'
 import { ActivityTimeline } from '../activities/ActivityTimeline'
+import { AttachmentsCard } from '../files/AttachmentsCard'
+import { TagPicker } from '../tags/TagPicker'
 import { listDealsByContact } from '../deals/api'
 import { DEAL_STAGE_CLASS, DEAL_STAGE_LABEL } from '../deals/constants'
 import { listProposals } from '../proposals/api'
@@ -128,6 +130,9 @@ export function ContactDetailPage() {
                 </span>
               )}
             </div>
+            <div className="mt-3">
+              <TagPicker entityType="CONTACT" entityId={contact.id} />
+            </div>
           </div>
         </div>
         <Button variant="secondary" onClick={() => setEditOpen(true)}>
@@ -217,6 +222,8 @@ export function ContactDetailPage() {
               />
             ))}
           </RelatedCard>
+
+          <AttachmentsCard entityType="CONTACT" entityId={contact.id} />
         </div>
       </div>
 

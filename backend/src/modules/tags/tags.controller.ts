@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -18,6 +19,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TagsService } from './tags.service';
 import { ApplyTagDto } from './dto/apply-tag.dto';
 import { CreateTagDto } from './dto/create-tag.dto';
+import { QueryTagsForEntitiesDto } from './dto/query-tags-for-entities.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { TaggableType } from '../../generated/prisma/client';
 
@@ -36,6 +38,15 @@ export class TagsController {
   @Get()
   findAll(@CurrentUser('id') ownerId: string) {
     return this.tags.findAll(ownerId);
+  }
+
+  /** Etiquetas de varias entidades a la vez (?ids=uuid1,uuid2 — evita N+1). */
+  @Get('for-entities')
+  listForEntities(
+    @CurrentUser('id') ownerId: string,
+    @Query() query: QueryTagsForEntitiesDto,
+  ) {
+    return this.tags.listForEntities(ownerId, query.entityType, query.ids);
   }
 
   /** Etiquetas aplicadas a una entidad (contacto u oportunidad). */

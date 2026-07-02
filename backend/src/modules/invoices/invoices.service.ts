@@ -6,12 +6,14 @@ import {
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectsService } from '../projects/projects.service';
+import { SettingsService } from '../settings/settings.service';
 import { Invoice } from '../../generated/prisma/client';
 import { ChangeInvoiceStatusDto } from './dto/change-invoice-status.dto';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { QueryInvoicesDto } from './dto/query-invoices.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { buildInvoicePdf } from './invoice-pdf';
 
 /**
  * Facturación y cobro. Aislada por ownerId. Toda factura nace de un proyecto,
@@ -23,6 +25,7 @@ export class InvoicesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly projects: ProjectsService,
+    private readonly settings: SettingsService,
   ) {}
 
   async create(ownerId: string, dto: CreateInvoiceDto): Promise<Invoice> {
@@ -225,6 +228,20 @@ export class InvoicesService {
       });
     }
     return this.findOne(ownerId, id);
+  }
+
+  /**
+   * Genera el PDF de la factura con los datos del perfil de empresa de la
+   * cuenta (settings). El detalle ya valida la propiedad vía findOne.
+   */
+  async generatePdf(
+    ownerId: string,
+    id: string,
+  ): Promise<{ filename: string; buffer: Buffer }> {
+    const invoice = await this.findOne(ownerId, id);
+    const profile = await this.settings.getCompanyProfile(ownerId);
+    const buffer = await buildInvoicePdf(invoice, profile);
+    return { filename: `${invoice.number}.pdf`, buffer };
   }
 
   // ──────────────────── lecturas para dashboard/reports ────────────────────

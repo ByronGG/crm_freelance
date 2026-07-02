@@ -4,6 +4,38 @@ Monorepo de un CRM orientado a freelancers y pequeñas agencias de software,
 construido como **monolito modular**: un solo despliegue y una sola base de
 datos, con el código dividido en módulos de dominio de fronteras estrictas.
 
+Centraliza la relación comercial completa en una sola app: desde el primer
+contacto de un prospecto, pasando por el pipeline de ventas y las propuestas,
+hasta los proyectos contratados y su facturación.
+
+## Funcionalidades
+
+| Área | Qué incluye |
+| ---- | ----------- |
+| Contactos y empresas | CRUD con búsqueda, vínculo contacto ↔ empresa, perfil **360°** (datos + timeline + oportunidades + propuestas + proyectos + etiquetas + adjuntos) |
+| Pipeline de ventas | Tablero **kanban** con 6 etapas y drag & drop, motivo de pérdida, historial de cambios de etapa |
+| Propuestas | Ítems (descripción, cantidad, precio) con total calculado; estados Borrador → Enviada → Aceptada/Rechazada |
+| Proyectos | Conversión automática de oportunidad **ganada** en proyecto; hitos con fechas y estado |
+| Facturación | Factura desde proyecto, numeración automática (`INV-0001`…), pagos parciales (auto-marca Pagada), **exportación a PDF** con los datos del perfil de empresa |
+| Actividades y tareas | Notas/llamadas/correos/reuniones ligadas a contacto u oportunidad; timeline cronológica; tareas con vencimiento |
+| Etiquetas | Tags de color reutilizables en contactos y oportunidades, con filtro en el listado |
+| Adjuntos | Referencias por URL (Drive, Dropbox…) en contactos, oportunidades y proyectos |
+| Notificaciones | Campana in-app con contador; jobs diarios que avisan de tareas y facturas vencidas |
+| Búsqueda global | `Ctrl/Cmd+K` en la topbar: busca contactos, oportunidades, proyectos y propuestas a la vez |
+| Dashboard | Valor en pipeline, cobros pendientes, ingresos del mes, tareas del día |
+
+## Flujo de uso
+
+1. **Contacto** — alta de la persona (y su empresa). Su ficha 360° concentra todo lo demás.
+2. **Oportunidad** — se abre en el kanban y avanza por etapas; las actividades y tareas registran el seguimiento.
+3. **Propuesta** — cotización con ítems y total; al aceptarse, la oportunidad se marca ganada.
+4. **Proyecto** — una oportunidad ganada se convierte en proyecto con un clic; se le añaden hitos.
+5. **Factura** — se emite desde el proyecto, se registran pagos y se descarga en PDF.
+
+Los jobs programados (diarios y al arrancar el servidor) detectan tareas y
+facturas vencidas y generan avisos en la campana, con deduplicación para que
+las re-ejecuciones no dupliquen notificaciones.
+
 ## Stack
 
 | Capa        | Tecnología                                   |
@@ -43,11 +75,37 @@ Los 14 módulos de dominio están montados en el backend:
 `activities` · `invoices` · `tags` · `files` · `notifications` ·
 `settings` · `reports` · `dashboard`
 
-El frontend cuenta con páginas para: dashboard, contactos, oportunidades
-(tablero), propuestas, proyectos, tareas, facturas y configuración.
+El frontend cuenta con páginas para: dashboard, contactos (listado + detalle
+360°), oportunidades (tablero kanban), propuestas, proyectos, tareas, facturas
+y configuración; más componentes transversales embebibles (timeline de
+actividad, campana de notificaciones, búsqueda global, etiquetas y adjuntos).
 
 > **Regla de fronteras:** un módulo nunca consulta las tablas de otro; pide la
 > información al servicio público del módulo dueño (patrón `assertOwned`).
+
+## Lógica de arquitectura
+
+- **Flujo de cada request:** `Controller` (HTTP + validación DTO) → `Service`
+  (toda la lógica de negocio) → `PrismaService` (único acceso a BD).
+- **Aislamiento por cuenta:** toda fila tiene `ownerId` y toda consulta filtra
+  por él; el id sale del JWT (`@CurrentUser`), nunca del body. Es el invariante
+  que cubren los tests unitarios (`*.service.spec.ts`, con Prisma mockeado).
+- **Comunicación entre módulos:** vía servicios exportados (`assertOwned` para
+  validar ids ajenos). Los módulos de solo lectura (`dashboard`, `reports`)
+  componen las lecturas públicas de los demás.
+- **Jobs y notificaciones:** los schedulers viven en el módulo dueño del dato
+  (`activities/tasks.scheduler.ts`, `invoices/invoices.scheduler.ts`), corren a
+  diario y en el arranque, e importan `notifications` para crear avisos con
+  `createIfAbsent` (idempotente por `userId + type + link`). La única
+  excepción al filtro por `ownerId` son sus lecturas de ámbito sistema, que
+  nunca se exponen por controller.
+- **Vistas agregadas en el cliente:** el 360° del contacto y la búsqueda
+  global componen queries paralelas (TanStack Query) contra los endpoints de
+  cada módulo, en lugar de endpoints agregados en el backend que acoplarían
+  módulos en ciclos.
+- **PDF de facturas:** se genera en el backend (`pdfkit`) en
+  `GET /api/invoices/:id/pdf`, tomando el perfil de empresa del módulo
+  `settings` a través de su servicio exportado.
 
 ## Puesta en marcha (desarrollo local)
 

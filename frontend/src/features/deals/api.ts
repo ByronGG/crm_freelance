@@ -28,6 +28,12 @@ export async function listDealsByContact(contactId: string): Promise<Deal[]> {
   return data
 }
 
+/** Búsqueda de oportunidades por título (búsqueda global). */
+export async function searchDeals(search: string): Promise<Deal[]> {
+  const { data } = await api.get<Deal[]>('/deals', { params: { search } })
+  return data
+}
+
 export async function createDeal(input: DealInput): Promise<Deal> {
   const { data } = await api.post<Deal>('/deals', toPayload(input))
   return data

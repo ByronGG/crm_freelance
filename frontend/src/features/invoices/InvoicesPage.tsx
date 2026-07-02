@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Receipt, Search, Trash2 } from 'lucide-react'
+import { Download, Plus, Receipt, Search, Trash2 } from 'lucide-react'
 
 import { Button } from '../../components/ui/Button'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
@@ -9,7 +9,12 @@ import { formatAmount } from '../../lib/format'
 import { useDebounce } from '../../lib/useDebounce'
 import { listProjects } from '../projects/api'
 import { InvoiceFormModal } from './InvoiceFormModal'
-import { changeStatus, deleteInvoice, listInvoices } from './api'
+import {
+  changeStatus,
+  deleteInvoice,
+  downloadInvoicePdf,
+  listInvoices,
+} from './api'
 import type { Invoice, InvoiceStatus } from './types'
 
 const STATUSES: InvoiceStatus[] = ['DRAFT', 'ISSUED', 'PAID', 'OVERDUE']
@@ -69,6 +74,10 @@ export function InvoicesPage() {
       queryClient.invalidateQueries({ queryKey: ['invoices'] })
       setDeleting(null)
     },
+  })
+
+  const pdf = useMutation({
+    mutationFn: (inv: Invoice) => downloadInvoicePdf(inv.id, inv.number),
   })
 
   const invoices = data ?? []
@@ -204,7 +213,17 @@ export function InvoicesPage() {
                       {formatAmount(inv.total, inv.currency)}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => pdf.mutate(inv)}
+                          disabled={pdf.isPending}
+                          aria-label={`Descargar PDF de ${inv.number}`}
+                          title="Descargar PDF"
+                          className="grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-app hover:text-fg disabled:opacity-50"
+                        >
+                          <Download size={16} />
+                        </button>
                         <button
                           type="button"
                           onClick={() => setDeleting(inv)}

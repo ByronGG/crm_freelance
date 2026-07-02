@@ -84,3 +84,22 @@ export async function removePayment(
 export async function deleteInvoice(id: string): Promise<void> {
   await api.delete(`/invoices/${id}`)
 }
+
+/**
+ * Descarga el PDF de la factura. Pasa por el cliente axios (token) y dispara
+ * la descarga desde un blob; un <a href> directo no llevaría el Bearer.
+ */
+export async function downloadInvoicePdf(
+  id: string,
+  number: string,
+): Promise<void> {
+  const { data } = await api.get<Blob>(`/invoices/${id}/pdf`, {
+    responseType: 'blob',
+  })
+  const url = URL.createObjectURL(data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${number}.pdf`
+  link.click()
+  URL.revokeObjectURL(url)
+}
