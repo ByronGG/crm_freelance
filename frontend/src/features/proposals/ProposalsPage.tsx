@@ -6,31 +6,19 @@ import { Button } from '../../components/ui/Button'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { fieldInputClass } from '../../components/ui/TextField'
 import { formatAmount } from '../../lib/format'
+import { fullName } from '../../lib/names'
 import { useDebounce } from '../../lib/useDebounce'
 import { ProposalFormModal } from './ProposalFormModal'
+import {
+  PROPOSAL_STATUSES as STATUSES,
+  PROPOSAL_STATUS_CLASS as STATUS_CLASS,
+  PROPOSAL_STATUS_LABEL as STATUS_LABEL,
+} from './constants'
 import { changeStatus, deleteProposal, listProposals } from './api'
 import type { Proposal, ProposalStatus } from './types'
 
-const STATUSES: ProposalStatus[] = ['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED']
-
-const STATUS_LABEL: Record<ProposalStatus, string> = {
-  DRAFT: 'Borrador',
-  SENT: 'Enviada',
-  ACCEPTED: 'Aceptada',
-  REJECTED: 'Rechazada',
-}
-
-const STATUS_CLASS: Record<ProposalStatus, string> = {
-  DRAFT: 'bg-app text-muted',
-  SENT: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  ACCEPTED: 'bg-brand-soft text-brand-fg',
-  REJECTED: 'bg-red-500/10 text-red-600 dark:text-red-400',
-}
-
 function relName(p: Proposal): string {
-  if (p.contact) {
-    return [p.contact.firstName, p.contact.lastName].filter(Boolean).join(' ')
-  }
+  if (p.contact) return fullName(p.contact.firstName, p.contact.lastName)
   if (p.deal) return p.deal.title
   return '—'
 }

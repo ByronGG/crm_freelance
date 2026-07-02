@@ -5,28 +5,27 @@ import { Plus } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { Modal } from '../../components/ui/Modal'
 import { formatMoney } from '../../lib/format'
+import { fullName } from '../../lib/names'
 import { DealFormModal } from './DealFormModal'
+import {
+  DEAL_STAGES,
+  DEAL_STAGE_DOT,
+  DEAL_STAGE_LABEL,
+} from './constants'
 import { getBoard, updateStage } from './api'
 import type { BoardColumn, Deal, DealStage } from './types'
 
-interface StageMeta {
-  key: DealStage
-  label: string
-  dot: string
-}
-
-const STAGES: StageMeta[] = [
-  { key: 'NEW', label: 'Nuevo', dot: '#85B7EB' },
-  { key: 'CONTACTED', label: 'Contactado', dot: '#378ADD' },
-  { key: 'PROPOSAL', label: 'Propuesta', dot: '#EF9F27' },
-  { key: 'NEGOTIATION', label: 'Negociación', dot: '#7F77DD' },
-  { key: 'WON', label: 'Ganado', dot: '#0EA372' },
-  { key: 'LOST', label: 'Perdido', dot: '#E24B4A' },
-]
+// Metadatos de cada columna del tablero, derivados de las constantes de deals.
+const STAGES = DEAL_STAGES.map((key) => ({
+  key,
+  label: DEAL_STAGE_LABEL[key],
+  dot: DEAL_STAGE_DOT[key],
+}))
 
 function contactName(d: Deal): string | null {
-  if (!d.contact) return null
-  return [d.contact.firstName, d.contact.lastName].filter(Boolean).join(' ')
+  return d.contact
+    ? fullName(d.contact.firstName, d.contact.lastName)
+    : null
 }
 
 /** Mueve una oportunidad de columna y recalcula conteos/totales (optimista). */

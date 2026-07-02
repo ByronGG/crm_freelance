@@ -13,86 +13,25 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
+import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { formatAmount, formatMoney } from '../../lib/format'
+import { fullName, initials } from '../../lib/names'
 import { ActivityTimeline } from '../activities/ActivityTimeline'
 import { listDealsByContact } from '../deals/api'
-import type { DealStage } from '../deals/types'
+import { DEAL_STAGE_CLASS, DEAL_STAGE_LABEL } from '../deals/constants'
 import { listProposals } from '../proposals/api'
-import type { ProposalStatus } from '../proposals/types'
+import {
+  PROPOSAL_STATUS_CLASS,
+  PROPOSAL_STATUS_LABEL,
+} from '../proposals/constants'
 import { listProjects } from '../projects/api'
-import type { ProjectStatus } from '../projects/types'
+import {
+  PROJECT_STATUS_CLASS,
+  PROJECT_STATUS_LABEL,
+} from '../projects/constants'
 import { ContactFormModal } from './ContactFormModal'
 import { getContact } from './api'
-import type { Contact } from './types'
-
-const DEAL_STAGE: Record<DealStage, { label: string; className: string }> = {
-  NEW: { label: 'Nuevo', className: 'bg-app text-muted' },
-  CONTACTED: {
-    label: 'Contactado',
-    className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  },
-  PROPOSAL: {
-    label: 'Propuesta',
-    className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  },
-  NEGOTIATION: {
-    label: 'Negociación',
-    className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  },
-  WON: { label: 'Ganado', className: 'bg-brand-soft text-brand-fg' },
-  LOST: {
-    label: 'Perdido',
-    className: 'bg-red-500/10 text-red-600 dark:text-red-400',
-  },
-}
-
-const PROPOSAL_STATUS: Record<ProposalStatus, { label: string; className: string }> = {
-  DRAFT: { label: 'Borrador', className: 'bg-app text-muted' },
-  SENT: {
-    label: 'Enviada',
-    className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  },
-  ACCEPTED: { label: 'Aceptada', className: 'bg-brand-soft text-brand-fg' },
-  REJECTED: {
-    label: 'Rechazada',
-    className: 'bg-red-500/10 text-red-600 dark:text-red-400',
-  },
-}
-
-const PROJECT_STATUS: Record<ProjectStatus, { label: string; className: string }> = {
-  ACTIVE: { label: 'Activo', className: 'bg-brand-soft text-brand-fg' },
-  PAUSED: {
-    label: 'En pausa',
-    className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  },
-  COMPLETED: {
-    label: 'Completado',
-    className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  },
-  CANCELLED: { label: 'Cancelado', className: 'bg-app text-muted' },
-}
-
-function fullName(c: Contact): string {
-  return [c.firstName, c.lastName].filter(Boolean).join(' ')
-}
-
-function initials(c: Contact): string {
-  return [c.firstName?.[0], c.lastName?.[0]]
-    .filter(Boolean)
-    .join('')
-    .toUpperCase()
-}
-
-function Badge({ label, className }: { label: string; className: string }) {
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${className}`}
-    >
-      {label}
-    </span>
-  )
-}
 
 export function ContactDetailPage() {
   const { id = '' } = useParams()
@@ -157,10 +96,12 @@ export function ContactDetailPage() {
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4 rounded-xl border border-line bg-surface p-5">
         <div className="flex items-center gap-4">
           <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-brand-soft text-lg font-medium text-brand-fg">
-            {initials(contact) || '?'}
+            {initials(contact.firstName, contact.lastName) || '?'}
           </span>
           <div className="min-w-0">
-            <h1 className="text-xl font-medium text-fg">{fullName(contact)}</h1>
+            <h1 className="text-xl font-medium text-fg">
+              {fullName(contact.firstName, contact.lastName)}
+            </h1>
             {contact.position && (
               <p className="mt-0.5 text-sm text-muted">{contact.position}</p>
             )}
@@ -226,8 +167,8 @@ export function ContactDetailPage() {
                 meta={formatMoney(d.value)}
                 badge={
                   <Badge
-                    label={DEAL_STAGE[d.stage].label}
-                    className={DEAL_STAGE[d.stage].className}
+                    label={DEAL_STAGE_LABEL[d.stage]}
+                    className={DEAL_STAGE_CLASS[d.stage]}
                   />
                 }
               />
@@ -248,8 +189,8 @@ export function ContactDetailPage() {
                 meta={formatAmount(p.total, p.currency)}
                 badge={
                   <Badge
-                    label={PROPOSAL_STATUS[p.status].label}
-                    className={PROPOSAL_STATUS[p.status].className}
+                    label={PROPOSAL_STATUS_LABEL[p.status]}
+                    className={PROPOSAL_STATUS_CLASS[p.status]}
                   />
                 }
               />
@@ -269,8 +210,8 @@ export function ContactDetailPage() {
                 title={p.name}
                 badge={
                   <Badge
-                    label={PROJECT_STATUS[p.status].label}
-                    className={PROJECT_STATUS[p.status].className}
+                    label={PROJECT_STATUS_LABEL[p.status]}
+                    className={PROJECT_STATUS_CLASS[p.status]}
                   />
                 }
               />

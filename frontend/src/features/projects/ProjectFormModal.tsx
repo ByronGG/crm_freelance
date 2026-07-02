@@ -11,6 +11,7 @@ import {
   fieldBase,
   fieldInputClass,
 } from '../../components/ui/TextField'
+import { PROJECT_STATUSES, PROJECT_STATUS_LABEL } from './constants'
 import {
   addMilestone,
   createProject,
@@ -26,13 +27,6 @@ import type {
   ProjectForm,
   ProjectStatus,
 } from './types'
-
-const PROJECT_STATUSES: { value: ProjectStatus; label: string }[] = [
-  { value: 'ACTIVE', label: 'Activo' },
-  { value: 'PAUSED', label: 'En pausa' },
-  { value: 'COMPLETED', label: 'Completado' },
-  { value: 'CANCELLED', label: 'Cancelado' },
-]
 
 const MILESTONE_STATUSES: { value: MilestoneStatus; label: string }[] = [
   { value: 'PENDING', label: 'Pendiente' },
@@ -172,8 +166,8 @@ export function ProjectFormModal({ open, onClose, project }: Props) {
               }
             >
               {PROJECT_STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
+                <option key={s} value={s}>
+                  {PROJECT_STATUS_LABEL[s]}
                 </option>
               ))}
             </select>

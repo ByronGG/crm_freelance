@@ -2,18 +2,8 @@ import { LogOut, Search } from 'lucide-react'
 
 import { useAuth } from '../../features/auth/AuthContext'
 import { NotificationsBell } from '../../features/notifications/NotificationsBell'
+import { initialsFromName } from '../../lib/names'
 import { ThemeToggle } from '../ThemeToggle'
-
-/** Iniciales del nombre para el avatar (máx. 2 letras). */
-function initials(name: string): string {
-  return name
-    .split(' ')
-    .map((p) => p[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-}
 
 export function Topbar() {
   const { user, logout } = useAuth()
@@ -33,7 +23,7 @@ export function Topbar() {
 
       <div className="flex items-center gap-2.5 pl-1">
         <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-500 text-xs font-medium text-white">
-          {user ? initials(user.name) : '—'}
+          {user ? initialsFromName(user.name) : '—'}
         </span>
         <div className="hidden leading-tight sm:block">
           <p className="text-sm font-medium text-fg">{user?.name}</p>

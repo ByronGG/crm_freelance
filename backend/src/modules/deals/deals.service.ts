@@ -163,7 +163,11 @@ export class DealsService {
         ...(dto.value !== undefined ? { value: dto.value } : {}),
         ...(dto.contactId !== undefined ? { contactId: dto.contactId } : {}),
         ...(dto.expectedClose !== undefined
-          ? { expectedClose: new Date(dto.expectedClose) }
+          ? {
+              expectedClose: dto.expectedClose
+                ? new Date(dto.expectedClose)
+                : null,
+            }
           : {}),
       },
     });

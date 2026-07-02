@@ -7,17 +7,10 @@ import { Button } from '../../components/ui/Button'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { fieldInputClass } from '../../components/ui/TextField'
 import { useDebounce } from '../../lib/useDebounce'
+import { fullName, initials } from '../../lib/names'
 import { ContactFormModal } from './ContactFormModal'
 import { deleteContact, listContacts } from './api'
 import type { Contact } from './types'
-
-function fullName(c: Contact): string {
-  return [c.firstName, c.lastName].filter(Boolean).join(' ')
-}
-
-function initials(c: Contact): string {
-  return [c.firstName?.[0], c.lastName?.[0]].filter(Boolean).join('').toUpperCase()
-}
 
 export function ContactsPage() {
   const queryClient = useQueryClient()
@@ -126,11 +119,11 @@ export function ContactsPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-medium text-brand-fg">
-                          {initials(c) || '?'}
+                          {initials(c.firstName, c.lastName) || '?'}
                         </span>
                         <div className="min-w-0">
                           <p className="truncate font-medium text-fg">
-                            {fullName(c)}
+                            {fullName(c.firstName, c.lastName)}
                           </p>
                           {c.position && (
                             <p className="truncate text-xs text-subtle">
@@ -189,7 +182,7 @@ export function ContactsPage() {
         open={deleting !== null}
         title="Eliminar contacto"
         message={`¿Seguro que quieres eliminar a ${
-          deleting ? fullName(deleting) : ''
+          deleting ? fullName(deleting.firstName, deleting.lastName) : ''
         }? Esta acción no se puede deshacer.`}
         loading={remove.isPending}
         onConfirm={() => deleting && remove.mutate(deleting.id)}

@@ -11,33 +11,17 @@ import { useDebounce } from '../../lib/useDebounce'
 import { listDeals } from '../deals/api'
 import { ProjectFormModal } from './ProjectFormModal'
 import {
+  PROJECT_STATUSES as STATUSES,
+  PROJECT_STATUS_CLASS as STATUS_CLASS,
+  PROJECT_STATUS_LABEL as STATUS_LABEL,
+} from './constants'
+import {
   changeStatus,
   createFromDeal,
   deleteProject,
   listProjects,
 } from './api'
 import type { Project, ProjectStatus } from './types'
-
-const STATUSES: ProjectStatus[] = [
-  'ACTIVE',
-  'PAUSED',
-  'COMPLETED',
-  'CANCELLED',
-]
-
-const STATUS_LABEL: Record<ProjectStatus, string> = {
-  ACTIVE: 'Activo',
-  PAUSED: 'En pausa',
-  COMPLETED: 'Completado',
-  CANCELLED: 'Cancelado',
-}
-
-const STATUS_CLASS: Record<ProjectStatus, string> = {
-  ACTIVE: 'bg-brand-soft text-brand-fg',
-  PAUSED: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  COMPLETED: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  CANCELLED: 'bg-app text-muted',
-}
 
 export function ProjectsPage() {
   const queryClient = useQueryClient()
