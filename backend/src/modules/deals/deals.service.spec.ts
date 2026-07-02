@@ -115,5 +115,30 @@ describe('DealsService (aislamiento por ownerId y frontera de módulo)', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(prisma.deal.update).not.toHaveBeenCalled();
     });
+
+    it('guarda expectedClose como Date cuando llega una fecha válida', async () => {
+      prisma.deal.findFirst.mockResolvedValue({ id: 'd1' });
+      prisma.deal.update.mockResolvedValue({ id: 'd1' });
+
+      await service.update(OWNER, 'd1', { expectedClose: '2026-09-01' });
+
+      const data = prisma.deal.update.mock.calls[0][0].data;
+      expect(data.expectedClose).toEqual(new Date('2026-09-01'));
+    });
+
+    it('guarda expectedClose como null (no 1970) cuando llega vacío/null', async () => {
+      prisma.deal.findFirst.mockResolvedValue({ id: 'd1' });
+      prisma.deal.update.mockResolvedValue({ id: 'd1' });
+
+      // El frontend envía `expectedClose: input.expectedClose || null`; con
+      // @IsOptional class-validator deja pasar null sin convertirlo a Date.
+      await service.update(OWNER, 'd1', {
+        title: 'Solo título',
+        expectedClose: null as unknown as string,
+      });
+
+      const data = prisma.deal.update.mock.calls[0][0].data;
+      expect(data.expectedClose).toBeNull();
+    });
   });
 });
