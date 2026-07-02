@@ -118,6 +118,24 @@ export class InvoicesService {
     }
   }
 
+  /**
+   * Marca como VENCIDAS las facturas EMITIDAS cuya fecha de vencimiento ya pasó
+   * y devuelve las afectadas para notificar. Ámbito sistema: uso del job de
+   * vencimientos, no filtra por cuenta.
+   */
+  async markOverdue(now: Date): Promise<Invoice[]> {
+    const due = await this.prisma.invoice.findMany({
+      where: { status: 'ISSUED', dueDate: { not: null, lt: now } },
+    });
+    if (due.length > 0) {
+      await this.prisma.invoice.updateMany({
+        where: { id: { in: due.map((i) => i.id) } },
+        data: { status: 'OVERDUE' },
+      });
+    }
+    return due;
+  }
+
   /** Cambia el estado de cobro. Al EMITIR por primera vez fija issuedAt. */
   async changeStatus(
     ownerId: string,

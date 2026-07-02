@@ -1,6 +1,7 @@
-import { Bell, LogOut, Search } from 'lucide-react'
+import { LogOut, Search } from 'lucide-react'
 
 import { useAuth } from '../../features/auth/AuthContext'
+import { NotificationsBell } from '../../features/notifications/NotificationsBell'
 import { ThemeToggle } from '../ThemeToggle'
 
 /** Iniciales del nombre para el avatar (máx. 2 letras). */
@@ -28,13 +29,7 @@ export function Topbar() {
 
       <ThemeToggle />
 
-      <button
-        type="button"
-        aria-label="Notificaciones"
-        className="grid h-9 w-9 place-items-center rounded-lg border border-line text-muted transition-colors hover:bg-app hover:text-fg"
-      >
-        <Bell size={18} />
-      </button>
+      <NotificationsBell />
 
       <div className="flex items-center gap-2.5 pl-1">
         <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-500 text-xs font-medium text-white">

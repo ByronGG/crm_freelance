@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AppController } from './app.controller';
@@ -29,6 +30,9 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 
     // Rate limiting básico: 100 peticiones por minuto por IP.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+
+    // Tareas programadas (jobs de vencimientos: tareas y facturas).
+    ScheduleModule.forRoot(),
 
     // Acceso a datos (global).
     PrismaModule,

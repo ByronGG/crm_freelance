@@ -25,6 +25,23 @@ export class NotificationsService {
     });
   }
 
+  /**
+   * Crea la notificación solo si no existe ya una del mismo tipo y enlace para
+   * el usuario. Idempotente: los jobs de vencimientos pueden ejecutarse a diario
+   * sin duplicar avisos (el `link` incluye el id de la entidad de origen).
+   */
+  async createIfAbsent(
+    userId: string,
+    dto: CreateNotificationDto,
+  ): Promise<Notification | null> {
+    const exists = await this.prisma.notification.findFirst({
+      where: { userId, type: dto.type, link: dto.link ?? null },
+      select: { id: true },
+    });
+    if (exists) return null;
+    return this.create(userId, dto);
+  }
+
   findAll(
     userId: string,
     query: QueryNotificationsDto,
