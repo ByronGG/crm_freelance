@@ -32,4 +32,15 @@ export default tseslint.config(
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
+  {
+    // En las pruebas, los mocks (jest.fn, expect.objectContaining) producen
+    // valores `any` por naturaleza; relajamos las reglas type-aware "unsafe".
+    files: ['**/*.spec.ts', 'src/test-utils/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+    },
+  },
 );
