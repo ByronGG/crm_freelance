@@ -68,6 +68,17 @@ export class TasksService {
     });
   }
 
+  /**
+   * Tareas pendientes vencidas o que vencen hasta `before`, de TODAS las
+   * cuentas. Uso exclusivo del job de recordatorios (ámbito sistema).
+   */
+  findDueForReminder(before: Date): Promise<Task[]> {
+    return this.prisma.task.findMany({
+      where: { status: 'PENDING', dueDate: { not: null, lte: before } },
+      orderBy: { dueDate: 'asc' },
+    });
+  }
+
   async update(ownerId: string, id: string, dto: UpdateTaskDto): Promise<Task> {
     await this.assertOwned(ownerId, id);
     await this.assertRelations(ownerId, dto.contactId, dto.dealId);
