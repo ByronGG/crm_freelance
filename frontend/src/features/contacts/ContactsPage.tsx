@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Search, Trash2, Users } from 'lucide-react'
+import { Download, Pencil, Plus, Search, Trash2, Upload, Users } from 'lucide-react'
 
 import { Button } from '../../components/ui/Button'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
@@ -12,18 +12,26 @@ import { TagChip } from '../tags/TagChip'
 import { listTags, listTagsForEntities } from '../tags/api'
 import type { Tag } from '../tags/types'
 import { ContactFormModal } from './ContactFormModal'
-import { deleteContact, listContacts } from './api'
+import {
+  deleteContact,
+  exportContactsCsv,
+  importContactsCsv,
+  listContacts,
+  type ImportResult,
+} from './api'
 import type { Contact } from './types'
 
 export function ContactsPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const fileInput = useRef<HTMLInputElement>(null)
   const [search, setSearch] = useState('')
   const debounced = useDebounce(search)
   const [tagFilter, setTagFilter] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Contact | null>(null)
   const [deleting, setDeleting] = useState<Contact | null>(null)
+  const [importResult, setImportResult] = useState<ImportResult | null>(null)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['contacts', debounced],
@@ -58,6 +66,25 @@ export function ContactsPage() {
     },
   })
 
+  const exportCsv = useMutation({ mutationFn: () => exportContactsCsv() })
+
+  const importCsv = useMutation({
+    mutationFn: (csv: string) => importContactsCsv(csv),
+    onSuccess: (result) => {
+      setImportResult(result)
+      queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
+    },
+  })
+
+  async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // permite re-subir el mismo archivo
+    if (!file) return
+    const text = await file.text()
+    importCsv.mutate(text)
+  }
+
   function openCreate() {
     setEditing(null)
     setFormOpen(true)
@@ -83,10 +110,63 @@ export function ContactsPage() {
             Personas con las que haces negocio.
           </p>
         </div>
-        <Button variant="primary" onClick={openCreate}>
-          <Plus size={16} /> Nuevo contacto
-        </Button>
+        <div className="flex gap-2">
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={onFilePicked}
+          />
+          <Button
+            variant="secondary"
+            onClick={() => fileInput.current?.click()}
+            disabled={importCsv.isPending}
+          >
+            <Upload size={16} /> {importCsv.isPending ? 'Importando…' : 'Importar'}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => exportCsv.mutate()}
+            disabled={exportCsv.isPending || contacts.length === 0}
+          >
+            <Download size={16} /> Exportar
+          </Button>
+          <Button variant="primary" onClick={openCreate}>
+            <Plus size={16} /> Nuevo contacto
+          </Button>
+        </div>
       </div>
+
+      {importResult && (
+        <div className="mt-4 flex items-start justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3">
+          <div className="text-sm">
+            <p className="font-medium text-fg">
+              Importación: {importResult.created} creados
+              {importResult.skipped > 0
+                ? `, ${importResult.skipped} omitidos`
+                : ''}
+            </p>
+            {importResult.errors.length > 0 && (
+              <ul className="mt-1 list-inside list-disc text-xs text-muted">
+                {importResult.errors.slice(0, 5).map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+                {importResult.errors.length > 5 && (
+                  <li>y {importResult.errors.length - 5} más…</li>
+                )}
+              </ul>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setImportResult(null)}
+            className="text-xs text-muted hover:text-fg"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
         <div className="relative max-w-sm flex-1">

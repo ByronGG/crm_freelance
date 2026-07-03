@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ContactsService } from '../contacts/contacts.service';
 import { DealsService } from '../deals/deals.service';
+import { SettingsService } from '../settings/settings.service';
 import { Proposal } from '../../generated/prisma/client';
 import { ChangeStatusDto } from './dto/change-status.dto';
 import { CreateProposalDto } from './dto/create-proposal.dto';
@@ -10,6 +11,7 @@ import { ProposalItemDto } from './dto/proposal-item.dto';
 import { QueryProposalsDto } from './dto/query-proposals.dto';
 import { UpdateItemsDto } from './dto/update-items.dto';
 import { UpdateProposalDto } from './dto/update-proposal.dto';
+import { buildProposalPdf } from './proposal-pdf';
 
 /**
  * Gestión de propuestas. Aislada por ownerId. El total NUNCA se recibe del
@@ -22,6 +24,7 @@ export class ProposalsService {
     private readonly prisma: PrismaService,
     private readonly contacts: ContactsService,
     private readonly deals: DealsService,
+    private readonly settings: SettingsService,
   ) {}
 
   async create(ownerId: string, dto: CreateProposalDto): Promise<Proposal> {
@@ -142,6 +145,36 @@ export class ProposalsService {
     await this.assertOwned(ownerId, id);
     // Los ítems se borran en cascada (onDelete: Cascade).
     await this.prisma.proposal.delete({ where: { id } });
+  }
+
+  /**
+   * Genera el PDF de la propuesta con sus ítems y los datos del perfil de
+   * empresa (settings). findOne ya valida la propiedad.
+   */
+  async generatePdf(
+    ownerId: string,
+    id: string,
+  ): Promise<{ filename: string; buffer: Buffer }> {
+    const proposal = await this.findOne(ownerId, id);
+    const profile = await this.settings.getCompanyProfile(ownerId);
+    const buffer = await buildProposalPdf(proposal, profile);
+    const slug = proposal.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    return { filename: `propuesta-${slug || 'sin-titulo'}.pdf`, buffer };
+  }
+
+  /**
+   * Propuestas ENVIADAS cuyo envío es anterior a `before`, de TODAS las
+   * cuentas. Uso exclusivo del job de seguimiento (ámbito sistema).
+   */
+  findStaleSent(before: Date): Promise<Proposal[]> {
+    return this.prisma.proposal.findMany({
+      where: { status: 'SENT', sentAt: { not: null, lt: before } },
+      orderBy: { sentAt: 'asc' },
+    });
   }
 
   /** Total = Σ(cantidad × precio), redondeado a 2 decimales. */

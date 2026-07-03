@@ -13,12 +13,20 @@ const OTHER = 'owner-2';
 
 describe('ContactsService (aislamiento por ownerId)', () => {
   let prisma: PrismaMock;
-  let companies: { assertOwned: jest.Mock };
+  let companies: {
+    assertOwned: jest.Mock;
+    findAll: jest.Mock;
+    create: jest.Mock;
+  };
   let service: ContactsService;
 
   beforeEach(() => {
     prisma = createPrismaMock();
-    companies = { assertOwned: jest.fn() };
+    companies = {
+      assertOwned: jest.fn(),
+      findAll: jest.fn().mockResolvedValue([]),
+      create: jest.fn(),
+    };
     service = new ContactsService(
       asPrisma(prisma),
       companies as unknown as CompaniesService,
@@ -125,6 +133,42 @@ describe('ContactsService (aislamiento por ownerId)', () => {
       await expect(service.assertOwned(OTHER, 'k1')).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('importCsv', () => {
+    it('reconoce la cabecera sin distinguir mayúsculas y crea con ownerId', async () => {
+      prisma.contact.create.mockResolvedValue({ id: 'k1' });
+
+      const result = await service.importCsv(
+        OWNER,
+        'FirstName,Email\nAna,ana@acme.com',
+      );
+
+      expect(result.created).toBe(1);
+      expect(prisma.contact.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ ownerId: OWNER, firstName: 'Ana' }),
+      });
+    });
+
+    it('acepta alias en español y omite filas sin nombre', async () => {
+      prisma.contact.create.mockResolvedValue({ id: 'k1' });
+
+      const result = await service.importCsv(
+        OWNER,
+        'nombre,correo\nLuis,luis@acme.com\n,sinnombre@acme.com',
+      );
+
+      expect(result.created).toBe(1);
+      expect(result.skipped).toBe(1);
+    });
+
+    it('rechaza el CSV si falta la columna de nombre', async () => {
+      const result = await service.importCsv(OWNER, 'email\nana@acme.com');
+
+      expect(result.created).toBe(0);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(prisma.contact.create).not.toHaveBeenCalled();
     });
   });
 });

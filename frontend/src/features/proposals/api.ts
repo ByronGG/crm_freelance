@@ -79,3 +79,25 @@ export async function changeStatus(
 export async function deleteProposal(id: string): Promise<void> {
   await api.delete(`/proposals/${id}`)
 }
+
+/** Descarga la propuesta en PDF (blob vía axios para llevar el token). */
+export async function downloadProposalPdf(
+  id: string,
+  title: string,
+): Promise<void> {
+  const { data } = await api.get<Blob>(`/proposals/${id}/pdf`, {
+    responseType: 'blob',
+  })
+  const slug =
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'propuesta'
+  const url = URL.createObjectURL(data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `propuesta-${slug}.pdf`
+  link.click()
+  URL.revokeObjectURL(url)
+}

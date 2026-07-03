@@ -11,6 +11,7 @@ import {
   Post,
   Put,
   Query,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -50,6 +51,19 @@ export class ProposalsController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.proposals.findOne(ownerId, id);
+  }
+
+  /** Descarga la propuesta en PDF. */
+  @Get(':id/pdf')
+  async downloadPdf(
+    @CurrentUser('id') ownerId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<StreamableFile> {
+    const { filename, buffer } = await this.proposals.generatePdf(ownerId, id);
+    return new StreamableFile(buffer, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${filename}"`,
+    });
   }
 
   @Patch(':id')

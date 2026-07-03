@@ -57,3 +57,28 @@ export async function createCompany(name: string): Promise<Company> {
   const { data } = await api.post<Company>('/companies', { name: name.trim() })
   return data
 }
+
+/** Descarga los contactos de la cuenta como CSV. */
+export async function exportContactsCsv(): Promise<void> {
+  const { data } = await api.get<Blob>('/contacts/export.csv', {
+    responseType: 'blob',
+  })
+  const url = URL.createObjectURL(data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'contactos.csv'
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+export interface ImportResult {
+  created: number
+  skipped: number
+  errors: string[]
+}
+
+/** Importa contactos desde el texto de un CSV. */
+export async function importContactsCsv(csv: string): Promise<ImportResult> {
+  const { data } = await api.post<ImportResult>('/contacts/import', { csv })
+  return data
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { FileText, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Download, FileText, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 
 import { Button } from '../../components/ui/Button'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
@@ -14,7 +14,12 @@ import {
   PROPOSAL_STATUS_CLASS as STATUS_CLASS,
   PROPOSAL_STATUS_LABEL as STATUS_LABEL,
 } from './constants'
-import { changeStatus, deleteProposal, listProposals } from './api'
+import {
+  changeStatus,
+  deleteProposal,
+  downloadProposalPdf,
+  listProposals,
+} from './api'
 import type { Proposal, ProposalStatus } from './types'
 
 function relName(p: Proposal): string {
@@ -54,6 +59,10 @@ export function ProposalsPage() {
       queryClient.invalidateQueries({ queryKey: ['proposals'] })
       setDeleting(null)
     },
+  })
+
+  const pdf = useMutation({
+    mutationFn: (p: Proposal) => downloadProposalPdf(p.id, p.title),
   })
 
   const proposals = data ?? []
@@ -175,6 +184,16 @@ export function ProposalsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => pdf.mutate(p)}
+                          disabled={pdf.isPending}
+                          aria-label={`Descargar PDF de ${p.title}`}
+                          title="Descargar PDF"
+                          className="grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-app hover:text-fg disabled:opacity-50"
+                        >
+                          <Download size={16} />
+                        </button>
                         <button
                           type="button"
                           onClick={() => {
