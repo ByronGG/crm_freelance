@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { ContactsService } from '../contacts/contacts.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Deal, DealStage } from '../../generated/prisma/client';
 import { ChangeStageDto } from './dto/change-stage.dto';
 import { CreateDealDto } from './dto/create-deal.dto';
@@ -18,6 +19,16 @@ const STAGE_ORDER: DealStage[] = [
   'LOST',
 ];
 
+// Etiquetas en español para los mensajes de notificación de cambio de etapa.
+const STAGE_LABEL: Record<DealStage, string> = {
+  NEW: 'Nuevo',
+  CONTACTED: 'Contactado',
+  PROPOSAL: 'Propuesta',
+  NEGOTIATION: 'Negociación',
+  WON: 'Ganado',
+  LOST: 'Perdido',
+};
+
 /**
  * Gestión de oportunidades (pipeline de ventas). Aislada por ownerId.
  * El contacto asociado se valida a través de ContactsService, nunca tocando
@@ -25,9 +36,12 @@ const STAGE_ORDER: DealStage[] = [
  */
 @Injectable()
 export class DealsService {
+  private readonly logger = new Logger(DealsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly contacts: ContactsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(ownerId: string, dto: CreateDealDto): Promise<Deal> {
@@ -211,6 +225,19 @@ export class DealsService {
         data: { stage: dto.stage, lostReason },
       }),
     ]);
+
+    // Aviso in-app del cambio de etapa. No debe romper la operación principal;
+    // se usa create (no createIfAbsent) porque cada cambio es un evento nuevo.
+    try {
+      await this.notifications.create(ownerId, {
+        type: 'STAGE_CHANGE',
+        message: `Oportunidad "${deal.title}" movida a ${STAGE_LABEL[dto.stage]}`,
+        link: `/deals?focus=${id}`,
+      });
+    } catch (e) {
+      this.logger.error('No se pudo crear el aviso de cambio de etapa', e);
+    }
+
     return deal;
   }
 

@@ -1,5 +1,11 @@
 import { api } from '../../lib/api'
-import type { BoardColumn, Deal, DealInput, DealStage } from './types'
+import type {
+  BoardColumn,
+  Deal,
+  DealDetail,
+  DealInput,
+  DealStage,
+} from './types'
 
 /** Convierte el formulario en el payload del backend. */
 function toPayload(input: DealInput) {
@@ -31,6 +37,12 @@ export async function listDealsByContact(contactId: string): Promise<Deal[]> {
 /** Búsqueda de oportunidades por título (búsqueda global). */
 export async function searchDeals(search: string): Promise<Deal[]> {
   const { data } = await api.get<Deal[]>('/deals', { params: { search } })
+  return data
+}
+
+/** Detalle de la oportunidad con su historial de etapas. */
+export async function getDeal(id: string): Promise<DealDetail> {
+  const { data } = await api.get<DealDetail>(`/deals/${id}`)
   return data
 }
 

@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { Modal } from '../../components/ui/Modal'
 import { formatMoney } from '../../lib/format'
 import { fullName } from '../../lib/names'
+import { DealDetailDrawer } from './DealDetailDrawer'
 import { DealFormModal } from './DealFormModal'
 import {
   DEAL_STAGES,
@@ -60,6 +61,7 @@ export function DealsBoardPage() {
   const [overStage, setOverStage] = useState<DealStage | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Deal | null>(null)
+  const [viewing, setViewing] = useState<Deal | null>(null)
   const [lostTarget, setLostTarget] = useState<string | null>(null)
   const [lostReason, setLostReason] = useState('')
 
@@ -209,10 +211,7 @@ export function DealsBoardPage() {
                       draggable
                       onDragStart={() => onDragStart(deal)}
                       onDragEnd={onDragEnd}
-                      onClick={() => {
-                        setEditing(deal)
-                        setFormOpen(true)
-                      }}
+                      onClick={() => setViewing(deal)}
                       className={[
                         'cursor-grab rounded-lg border border-line bg-surface p-3 text-left transition-opacity active:cursor-grabbing',
                         draggingId === deal.id ? 'opacity-40' : '',
@@ -247,6 +246,16 @@ export function DealsBoardPage() {
           })}
         </div>
       )}
+
+      <DealDetailDrawer
+        deal={viewing}
+        onClose={() => setViewing(null)}
+        onEdit={(deal) => {
+          setViewing(null)
+          setEditing(deal)
+          setFormOpen(true)
+        }}
+      />
 
       <DealFormModal
         open={formOpen}

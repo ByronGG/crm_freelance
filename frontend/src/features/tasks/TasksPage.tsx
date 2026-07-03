@@ -5,6 +5,7 @@ import { Check, ListTodo, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { fieldInputClass } from '../../components/ui/TextField'
+import { useFocusHighlight } from '../../lib/useFocusHighlight'
 import { listContacts } from '../contacts/api'
 import { listDeals } from '../deals/api'
 import { TaskFormModal } from './TaskFormModal'
@@ -22,6 +23,7 @@ function todayString(): string {
 
 export function TasksPage() {
   const queryClient = useQueryClient()
+  const focusId = useFocusHighlight()
   const [statusFilter, setStatusFilter] = useState<TaskStatus | ''>('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Task | null>(null)
@@ -130,10 +132,17 @@ export function TasksPage() {
           const overdue =
             !done && !!t.dueDate && t.dueDate.slice(0, 10) < today
           const rel = relation(t)
+          const focused = t.id === focusId
           return (
             <div
               key={t.id}
-              className="group flex items-center gap-3 border-b border-line px-4 py-3 last:border-0 hover:bg-app/60"
+              ref={(el) => {
+                if (focused && el) el.scrollIntoView({ block: 'center' })
+              }}
+              className={[
+                'group flex items-center gap-3 border-b border-line px-4 py-3 last:border-0 transition-colors',
+                focused ? 'bg-brand-soft/50' : 'hover:bg-app/60',
+              ].join(' ')}
             >
               <button
                 type="button"

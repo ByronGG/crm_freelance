@@ -6,6 +6,7 @@ import {
   type PrismaMock,
 } from '../../test-utils/prisma-mock';
 import { ContactsService } from '../contacts/contacts.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { DealsService } from './deals.service';
 
 const OWNER = 'owner-1';
@@ -14,14 +15,17 @@ const OTHER = 'owner-2';
 describe('DealsService (aislamiento por ownerId y frontera de módulo)', () => {
   let prisma: PrismaMock;
   let contacts: { assertOwned: jest.Mock };
+  let notifications: { create: jest.Mock };
   let service: DealsService;
 
   beforeEach(() => {
     prisma = createPrismaMock();
     contacts = { assertOwned: jest.fn() };
+    notifications = { create: jest.fn() };
     service = new DealsService(
       asPrisma(prisma),
       contacts as unknown as ContactsService,
+      notifications as unknown as NotificationsService,
     );
   });
 
@@ -103,6 +107,32 @@ describe('DealsService (aislamiento por ownerId y frontera de módulo)', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(prisma.deal.update).not.toHaveBeenCalled();
       expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('genera un aviso STAGE_CHANGE cuando la etapa cambia', async () => {
+      prisma.deal.findFirst.mockResolvedValue({ stage: 'NEW' });
+      prisma.dealStageHistory.create.mockReturnValue({});
+      prisma.deal.update.mockReturnValue({ id: 'd1', title: 'Web' });
+
+      await service.changeStage(OWNER, 'd1', { stage: 'WON' });
+
+      expect(notifications.create).toHaveBeenCalledWith(
+        OWNER,
+        expect.objectContaining({
+          type: 'STAGE_CHANGE',
+          link: '/deals?focus=d1',
+        }),
+      );
+    });
+
+    it('no genera aviso ni historial si la etapa no cambia', async () => {
+      prisma.deal.findFirst.mockResolvedValue({ stage: 'WON' });
+      prisma.deal.update.mockResolvedValue({ id: 'd1', stage: 'WON' });
+
+      await service.changeStage(OWNER, 'd1', { stage: 'WON' });
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(notifications.create).not.toHaveBeenCalled();
     });
   });
 

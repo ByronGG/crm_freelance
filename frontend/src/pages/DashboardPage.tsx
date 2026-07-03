@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { api } from '../lib/api'
 import { useAuth } from '../features/auth/AuthContext'
+import { IncomeChart } from '../features/reports/IncomeChart'
 
 interface DashboardSummary {
   pipeline: {
@@ -105,6 +106,10 @@ export function DashboardPage() {
           />
         </div>
       )}
+
+      <div className="mt-6">
+        <IncomeChart />
+      </div>
     </div>
   )
 }

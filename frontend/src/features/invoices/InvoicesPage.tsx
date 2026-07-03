@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { fieldInputClass } from '../../components/ui/TextField'
 import { formatAmount } from '../../lib/format'
 import { useDebounce } from '../../lib/useDebounce'
+import { useFocusHighlight } from '../../lib/useFocusHighlight'
 import { listProjects } from '../projects/api'
 import { InvoiceFormModal } from './InvoiceFormModal'
 import {
@@ -35,6 +36,7 @@ const STATUS_CLASS: Record<InvoiceStatus, string> = {
 
 export function InvoicesPage() {
   const queryClient = useQueryClient()
+  const focusId = useFocusHighlight()
   const [search, setSearch] = useState('')
   const debounced = useDebounce(search)
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | ''>('')
@@ -168,10 +170,18 @@ export function InvoicesPage() {
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((inv) => (
+                {invoices.map((inv) => {
+                  const focused = inv.id === focusId
+                  return (
                   <tr
                     key={inv.id}
-                    className="border-b border-line last:border-0 hover:bg-app/60"
+                    ref={(el) => {
+                      if (focused && el) el.scrollIntoView({ block: 'center' })
+                    }}
+                    className={[
+                      'border-b border-line last:border-0 transition-colors',
+                      focused ? 'bg-brand-soft/50' : 'hover:bg-app/60',
+                    ].join(' ')}
                   >
                     <td className="px-4 py-3">
                       <button
@@ -235,7 +245,8 @@ export function InvoicesPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

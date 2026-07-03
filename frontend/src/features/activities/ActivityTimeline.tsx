@@ -40,24 +40,29 @@ const TYPE_CLASS: Record<ActivityType, string> = {
 }
 
 interface Props {
-  contactId: string
+  contactId?: string
+  dealId?: string
 }
 
-/** Línea de tiempo cronológica de un contacto, con composer para registrar. */
-export function ActivityTimeline({ contactId }: Props) {
+/**
+ * Línea de tiempo cronológica de un contacto o una oportunidad, con composer
+ * para registrar. Se pasa contactId o dealId según dónde se embeba.
+ */
+export function ActivityTimeline({ contactId, dealId }: Props) {
   const queryClient = useQueryClient()
   const [type, setType] = useState<ActivityType>('NOTE')
   const [content, setContent] = useState('')
 
-  const key = ['activities', contactId]
+  const filter = { contactId, dealId }
+  const key = ['activities', contactId ?? '', dealId ?? '']
 
   const { data, isLoading, isError } = useQuery({
     queryKey: key,
-    queryFn: () => listActivities({ contactId }),
+    queryFn: () => listActivities(filter),
   })
 
   const add = useMutation({
-    mutationFn: () => createActivity({ type, content, contactId }),
+    mutationFn: () => createActivity({ type, content, contactId, dealId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: key })
       setContent('')
@@ -83,7 +88,7 @@ export function ActivityTimeline({ contactId }: Props) {
       <div className="border-b border-line px-4 py-3">
         <h2 className="text-sm font-medium text-fg">Actividad</h2>
         <p className="mt-0.5 text-xs text-muted">
-          Notas, llamadas, correos y reuniones de este contacto.
+          Notas, llamadas, correos y reuniones registradas.
         </p>
       </div>
 

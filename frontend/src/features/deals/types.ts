@@ -32,6 +32,19 @@ export interface BoardColumn {
   deals: Deal[]
 }
 
+/** Entrada del historial de cambios de etapa. */
+export interface DealStageHistoryEntry {
+  id: string
+  fromStage: DealStage | null
+  toStage: DealStage
+  changedAt: string
+}
+
+/** Detalle de la oportunidad: incluye el historial de etapas. */
+export interface DealDetail extends Deal {
+  stageHistory: DealStageHistoryEntry[]
+}
+
 /** Campos editables del formulario de oportunidad. */
 export interface DealInput {
   title: string
