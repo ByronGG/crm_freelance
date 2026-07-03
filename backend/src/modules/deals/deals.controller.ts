@@ -35,10 +35,7 @@ export class DealsController {
   }
 
   @Get()
-  findAll(
-    @CurrentUser('id') ownerId: string,
-    @Query() query: QueryDealsDto,
-  ) {
+  findAll(@CurrentUser('id') ownerId: string, @Query() query: QueryDealsDto) {
     return this.deals.findAll(ownerId, query);
   }
 

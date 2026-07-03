@@ -43,8 +43,24 @@ model User {
   tags           Tag[]
   attachments    Attachment[]
   notifications  Notification[]
+  refreshTokens  RefreshToken[]
   companyProfile CompanyProfile?
   settings       Setting[]
+}
+
+// Refresh tokens persistidos (uno por sesión). Permiten rotación y revocación:
+// el id es el `jti` firmado en el token; al renovar se revoca el anterior y se
+// emite uno nuevo. Un reuso de token revocado invalida toda la sesión.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([userId])
 }
 
 // ───────────────────────────── settings ─────────────────────────────

@@ -54,9 +54,7 @@ export class ProposalsService {
         ...(status ? { status } : {}),
         ...(contactId ? { contactId } : {}),
         ...(dealId ? { dealId } : {}),
-        ...(search
-          ? { title: { contains: search, mode: 'insensitive' } }
-          : {}),
+        ...(search ? { title: { contains: search, mode: 'insensitive' } } : {}),
       },
       include: { contact: true, deal: true },
       orderBy: { updatedAt: 'desc' },

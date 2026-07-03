@@ -33,9 +33,15 @@ export default tseslint.config(
     },
   },
   {
-    // En las pruebas, los mocks (jest.fn, expect.objectContaining) producen
-    // valores `any` por naturaleza; relajamos las reglas type-aware "unsafe".
-    files: ['**/*.spec.ts', 'src/test-utils/**/*.ts'],
+    // En las pruebas (unitarias y e2e), los mocks (jest.fn, supertest,
+    // expect.objectContaining) producen valores `any` por naturaleza;
+    // relajamos las reglas type-aware "unsafe".
+    files: [
+      '**/*.spec.ts',
+      '**/*.e2e-spec.ts',
+      'test/**/*.ts',
+      'src/test-utils/**/*.ts',
+    ],
     rules: {
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',

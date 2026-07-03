@@ -28,10 +28,7 @@ export class FilesController {
 
   /** Registra un adjunto (metadatos + URL). */
   @Post()
-  create(
-    @CurrentUser('id') ownerId: string,
-    @Body() dto: CreateAttachmentDto,
-  ) {
+  create(@CurrentUser('id') ownerId: string, @Body() dto: CreateAttachmentDto) {
     return this.files.create(ownerId, dto);
   }
 

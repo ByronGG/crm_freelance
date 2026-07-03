@@ -51,6 +51,7 @@ export interface PrismaMock {
   tag: MockDelegate;
   taggable: MockDelegate;
   attachment: MockDelegate;
+  refreshToken: MockDelegate;
   $transaction: jest.Mock;
 }
 
@@ -77,6 +78,7 @@ export function createPrismaMock(): PrismaMock {
     tag: delegate(),
     taggable: delegate(),
     attachment: delegate(),
+    refreshToken: delegate(),
     // Por defecto ejecuta las operaciones del array de la transacción.
     $transaction: jest.fn((ops: unknown) =>
       Array.isArray(ops) ? Promise.all(ops) : Promise.resolve(ops),

@@ -22,7 +22,8 @@ import { RegisterDto } from './dto/register.dto';
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
-  /** Registro de una nueva cuenta. */
+  /** Registro de una nueva cuenta. Rate limit para evitar creación masiva. */
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
@@ -36,11 +37,18 @@ export class AuthController {
     return this.auth.login(dto);
   }
 
-  /** Renueva el par de tokens a partir de un refresh token válido. */
+  /** Renueva el par de tokens a partir de un refresh token válido (con rotación). */
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
   refresh(@Body() dto: RefreshDto) {
     return this.auth.refresh(dto.refreshToken);
+  }
+
+  /** Cierra sesión revocando el refresh token presentado. */
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Post('logout')
+  logout(@Body() dto: RefreshDto) {
+    return this.auth.logout(dto.refreshToken);
   }
 
   /** Devuelve el perfil del usuario autenticado (id, email, nombre, rol). */

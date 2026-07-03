@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const logout = useCallback(() => {
+    void authApi.logout() // revoca el refresh token en el servidor
     clearTokens()
     setUser(null)
     queryClient.clear()

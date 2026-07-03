@@ -1,4 +1,11 @@
-import { IsNumber, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
+import {
+  IsNumber,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 /** Línea de una propuesta: descripción, cantidad y precio unitario. */
 export class ProposalItemDto {
@@ -8,7 +15,10 @@ export class ProposalItemDto {
   description: string;
 
   @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 }, { message: 'La cantidad debe ser numérica' })
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: 'La cantidad debe ser numérica' },
+  )
   @Min(0, { message: 'La cantidad no puede ser negativa' })
   quantity?: number;
 

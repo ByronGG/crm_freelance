@@ -253,7 +253,11 @@ export class InvoicesService {
   async getReceivablesSummary(ownerId: string) {
     const invoices = await this.prisma.invoice.findMany({
       where: { ownerId, status: { in: ['ISSUED', 'OVERDUE'] } },
-      select: { status: true, total: true, payments: { select: { amount: true } } },
+      select: {
+        status: true,
+        total: true,
+        payments: { select: { amount: true } },
+      },
     });
 
     let pendingTotal = 0;
@@ -295,10 +299,18 @@ export class InvoicesService {
     const now = new Date();
     const result: { year: number; month: number; income: number }[] = [];
     for (let i = months - 1; i >= 0; i--) {
-      const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
-      const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i + 1, 1));
+      const from = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1),
+      );
+      const to = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i + 1, 1),
+      );
       const income = await this.getIncomeForPeriod(ownerId, from, to);
-      result.push({ year: from.getUTCFullYear(), month: from.getUTCMonth() + 1, income });
+      result.push({
+        year: from.getUTCFullYear(),
+        month: from.getUTCMonth() + 1,
+        income,
+      });
     }
     return result;
   }
@@ -320,9 +332,9 @@ export class InvoicesService {
   }
 
   /** Añade los importes calculados pagado/saldo al detalle. */
-  private withTotals<T extends { total: unknown; payments: { amount: unknown }[] }>(
-    invoice: T,
-  ) {
+  private withTotals<
+    T extends { total: unknown; payments: { amount: unknown }[] },
+  >(invoice: T) {
     const amountPaid = invoice.payments.reduce(
       (sum, p) => sum + Number(p.amount),
       0,

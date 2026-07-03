@@ -22,18 +22,12 @@ export class FilesService {
     private readonly projects: ProjectsService,
   ) {}
 
-  async create(
-    ownerId: string,
-    dto: CreateAttachmentDto,
-  ): Promise<Attachment> {
+  async create(ownerId: string, dto: CreateAttachmentDto): Promise<Attachment> {
     await this.assertEntityOwned(ownerId, dto.entityType, dto.entityId);
     return this.prisma.attachment.create({ data: { ownerId, ...dto } });
   }
 
-  findAll(
-    ownerId: string,
-    query: QueryAttachmentsDto,
-  ): Promise<Attachment[]> {
+  findAll(ownerId: string, query: QueryAttachmentsDto): Promise<Attachment[]> {
     const { entityType, entityId } = query;
     return this.prisma.attachment.findMany({
       where: {

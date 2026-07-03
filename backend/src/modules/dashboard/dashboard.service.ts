@@ -37,12 +37,13 @@ export class DashboardService {
       ),
     );
 
-    const [pipeline, receivables, monthIncome, pendingTasks] = await Promise.all([
-      this.deals.getPipelineSummary(ownerId),
-      this.invoices.getReceivablesSummary(ownerId),
-      this.invoices.getIncomeForPeriod(ownerId, monthStart, monthEnd),
-      this.tasks.findPendingDueBefore(ownerId, endOfToday),
-    ]);
+    const [pipeline, receivables, monthIncome, pendingTasks] =
+      await Promise.all([
+        this.deals.getPipelineSummary(ownerId),
+        this.invoices.getReceivablesSummary(ownerId),
+        this.invoices.getIncomeForPeriod(ownerId, monthStart, monthEnd),
+        this.tasks.findPendingDueBefore(ownerId, endOfToday),
+      ]);
 
     return {
       pipeline,

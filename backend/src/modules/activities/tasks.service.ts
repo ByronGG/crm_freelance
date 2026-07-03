@@ -45,7 +45,10 @@ export class TasksService {
         ...(dealId ? { dealId } : {}),
         ...(dueBefore ? { dueDate: { lte: new Date(dueBefore) } } : {}),
       },
-      orderBy: [{ dueDate: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
+      orderBy: [
+        { dueDate: { sort: 'asc', nulls: 'last' } },
+        { createdAt: 'asc' },
+      ],
     });
   }
 

@@ -21,9 +21,7 @@ export class CompaniesService {
     return this.prisma.company.findMany({
       where: {
         ownerId,
-        ...(search
-          ? { name: { contains: search, mode: 'insensitive' } }
-          : {}),
+        ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
       },
       orderBy: { name: 'asc' },
     });

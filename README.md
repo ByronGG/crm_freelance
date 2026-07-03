@@ -158,11 +158,18 @@ docker compose up --build   # db + backend + frontend
 | backend  | `npm run build`        | Compila a `dist/`                       |
 | backend  | `npm run lint`         | ESLint (`--fix`)                        |
 | backend  | `npm test`             | Jest (`npm test -- contacts` para filtrar) |
+| backend  | `npm run seed`         | Puebla una cuenta demo con datos de ejemplo |
 | backend  | `npx prisma migrate dev` | Aplica/crea migraciones               |
 | backend  | `npx prisma studio`    | Explorador de datos                     |
 | frontend | `npm run dev`          | Servidor de desarrollo Vite             |
 | frontend | `npm run build`        | `tsc -b && vite build`                  |
 | frontend | `npm run lint`         | **oxlint** (no ESLint)                  |
+
+Tras `npm run seed` puedes entrar con **`demo@crm.test` / `demo1234`** (incluye
+contactos, pipeline, propuestas, proyectos y facturas de ejemplo).
+
+Cada PR ejecuta el workflow de CI (`.github/workflows/ci.yml`): lint + tests +
+build de backend y frontend.
 
 ## Convenciones
 

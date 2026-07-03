@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 import {
   ConflictException,
   Injectable,
@@ -7,16 +9,22 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 
+import { PrismaService } from '../../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { Role, User } from '../../generated/prisma/client';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
-/** Datos firmados en los tokens (access y refresh comparten forma). */
+/** Datos base firmados en el access token. */
 interface TokenPayload {
   sub: string;
   email: string;
   role: Role;
+}
+
+/** El refresh token además lleva un `jti` para poder rotarlo/revocarlo. */
+interface RefreshPayload extends TokenPayload {
+  jti: string;
 }
 
 /** Vista pública del usuario que se devuelve al cliente (sin el hash). */
@@ -46,6 +54,7 @@ export class AuthService {
     private readonly users: UsersService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /** Crea una cuenta nueva y devuelve el par de tokens. */
@@ -91,14 +100,34 @@ export class AuthService {
     };
   }
 
-  /** Verifica el refresh token y emite un par de tokens nuevo. */
+  /**
+   * Verifica el refresh token, lo ROTA (revoca el usado y emite uno nuevo) y
+   * devuelve un par nuevo. Si se reusa un token ya revocado, se asume robo y se
+   * invalida toda la sesión del usuario.
+   */
   async refresh(refreshToken: string): Promise<AuthResponse> {
-    let payload: TokenPayload;
+    let payload: RefreshPayload;
     try {
-      payload = await this.jwt.verifyAsync<TokenPayload>(refreshToken, {
+      payload = await this.jwt.verifyAsync<RefreshPayload>(refreshToken, {
         secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
       });
     } catch {
+      throw new UnauthorizedException('Refresh token inválido o expirado');
+    }
+
+    const stored = await this.prisma.refreshToken.findUnique({
+      where: { id: payload.jti },
+    });
+    // Token desconocido: nunca se emitió o ya se limpió.
+    if (!stored) {
+      throw new UnauthorizedException('Refresh token inválido o expirado');
+    }
+    // Reuso de un token ya rotado/revocado → posible robo: corta toda la sesión.
+    if (stored.revokedAt) {
+      await this.revokeAllForUser(stored.userId);
+      throw new UnauthorizedException('Sesión invalidada por seguridad');
+    }
+    if (stored.expiresAt.getTime() < Date.now()) {
       throw new UnauthorizedException('Refresh token inválido o expirado');
     }
 
@@ -107,7 +136,35 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token inválido o expirado');
     }
 
+    // Rotación: revoca el token usado antes de emitir el nuevo par.
+    await this.prisma.refreshToken.update({
+      where: { id: stored.id },
+      data: { revokedAt: new Date() },
+    });
+
     return this.buildAuthResponse(user);
+  }
+
+  /** Cierra sesión revocando el refresh token presentado (idempotente). */
+  async logout(refreshToken: string): Promise<void> {
+    try {
+      const payload = await this.jwt.verifyAsync<RefreshPayload>(refreshToken, {
+        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      });
+      await this.prisma.refreshToken.updateMany({
+        where: { id: payload.jti, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    } catch {
+      // Token inválido o ya expirado: el logout es idempotente, no fallamos.
+    }
+  }
+
+  private async revokeAllForUser(userId: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
 
   /** Construye la respuesta de auth: usuario público + tokens. */
@@ -124,28 +181,46 @@ export class AuthService {
     };
   }
 
-  /** Firma el access token (vida corta) y el refresh token (vida larga). */
+  /**
+   * Firma el access token (vida corta) y el refresh token (vida larga). El
+   * refresh se persiste con su `jti` para poder rotarlo y revocarlo.
+   */
   private async issueTokens(
     user: User,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const payload: TokenPayload = {
+    const base: TokenPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
     };
+    const jti = randomUUID();
 
     const [accessToken, refreshToken] = await Promise.all([
       this.signToken(
-        payload,
+        base,
         this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         this.config.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN'),
       ),
       this.signToken(
-        payload,
+        { ...base, jti },
         this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
         this.config.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN'),
       ),
     ]);
+
+    // La fecha de expiración del registro sigue la del propio token firmado.
+    const decoded: unknown = this.jwt.decode(refreshToken);
+    const exp =
+      typeof decoded === 'object' && decoded !== null && 'exp' in decoded
+        ? Number((decoded as { exp?: unknown }).exp)
+        : NaN;
+    const expiresAt = Number.isFinite(exp)
+      ? new Date(exp * 1000)
+      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    await this.prisma.refreshToken.create({
+      data: { id: jti, userId: user.id, expiresAt },
+    });
 
     return { accessToken, refreshToken };
   }
@@ -156,7 +231,7 @@ export class AuthService {
    * por eso se centraliza aquí el único cast necesario.
    */
   private signToken(
-    payload: TokenPayload,
+    payload: TokenPayload | RefreshPayload,
     secret: string,
     expiresIn: string,
   ): Promise<string> {

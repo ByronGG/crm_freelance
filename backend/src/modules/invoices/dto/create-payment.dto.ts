@@ -9,7 +9,10 @@ import {
 
 /** Registro de un pago (total o parcial) sobre una factura. */
 export class CreatePaymentDto {
-  @IsNumber({ maxDecimalPlaces: 2 }, { message: 'El importe debe ser numérico' })
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: 'El importe debe ser numérico' },
+  )
   @IsPositive({ message: 'El importe debe ser mayor que cero' })
   amount: number;
 

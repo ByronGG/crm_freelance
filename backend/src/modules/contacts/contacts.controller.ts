@@ -31,10 +31,7 @@ export class ContactsController {
   constructor(private readonly contacts: ContactsService) {}
 
   @Post()
-  create(
-    @CurrentUser('id') ownerId: string,
-    @Body() dto: CreateContactDto,
-  ) {
+  create(@CurrentUser('id') ownerId: string, @Body() dto: CreateContactDto) {
     return this.contacts.create(ownerId, dto);
   }
 
@@ -48,9 +45,7 @@ export class ContactsController {
 
   /** Exporta los contactos de la cuenta a CSV. Antes de :id para no colisionar. */
   @Get('export.csv')
-  async exportCsv(
-    @CurrentUser('id') ownerId: string,
-  ): Promise<StreamableFile> {
+  async exportCsv(@CurrentUser('id') ownerId: string): Promise<StreamableFile> {
     const csv = await this.contacts.exportCsv(ownerId);
     return new StreamableFile(Buffer.from(csv, 'utf8'), {
       type: 'text/csv; charset=utf-8',

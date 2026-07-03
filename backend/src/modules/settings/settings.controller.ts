@@ -45,10 +45,7 @@ export class SettingsController {
   }
 
   @Get(':key')
-  getSetting(
-    @CurrentUser('id') ownerId: string,
-    @Param('key') key: string,
-  ) {
+  getSetting(@CurrentUser('id') ownerId: string, @Param('key') key: string) {
     return this.settings.getSetting(ownerId, key);
   }
 
@@ -63,10 +60,7 @@ export class SettingsController {
 
   @Delete(':key')
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteSetting(
-    @CurrentUser('id') ownerId: string,
-    @Param('key') key: string,
-  ) {
+  deleteSetting(@CurrentUser('id') ownerId: string, @Param('key') key: string) {
     return this.settings.deleteSetting(ownerId, key);
   }
 }

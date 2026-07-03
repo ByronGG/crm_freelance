@@ -28,10 +28,7 @@ export class CompaniesController {
   constructor(private readonly companies: CompaniesService) {}
 
   @Post()
-  create(
-    @CurrentUser('id') ownerId: string,
-    @Body() dto: CreateCompanyDto,
-  ) {
+  create(@CurrentUser('id') ownerId: string, @Body() dto: CreateCompanyDto) {
     return this.companies.create(ownerId, dto);
   }
 

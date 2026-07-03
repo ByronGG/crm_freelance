@@ -71,9 +71,7 @@ export class DealsService {
         ownerId,
         ...(stage ? { stage } : {}),
         ...(contactId ? { contactId } : {}),
-        ...(search
-          ? { title: { contains: search, mode: 'insensitive' } }
-          : {}),
+        ...(search ? { title: { contains: search, mode: 'insensitive' } } : {}),
       },
       include: { contact: true },
       orderBy: { updatedAt: 'desc' },
@@ -134,7 +132,8 @@ export class DealsService {
     });
 
     const closed = wonCount + lostCount;
-    const conversionRate = closed > 0 ? Math.round((wonCount / closed) * 1000) / 1000 : 0;
+    const conversionRate =
+      closed > 0 ? Math.round((wonCount / closed) * 1000) / 1000 : 0;
 
     return {
       openCount,
@@ -161,11 +160,7 @@ export class DealsService {
     return deal;
   }
 
-  async update(
-    ownerId: string,
-    id: string,
-    dto: UpdateDealDto,
-  ): Promise<Deal> {
+  async update(ownerId: string, id: string, dto: UpdateDealDto): Promise<Deal> {
     await this.assertOwned(ownerId, id);
     if (dto.contactId) {
       await this.contacts.assertOwned(ownerId, dto.contactId);
