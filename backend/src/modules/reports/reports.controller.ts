@@ -15,14 +15,14 @@ export class ReportsController {
 
   /** Conversión del pipeline. */
   @Get('pipeline')
-  pipeline(@CurrentUser('id') ownerId: string) {
+  pipeline(@CurrentUser('accountId') ownerId: string) {
     return this.reports.getPipeline(ownerId);
   }
 
   /** Ingresos por mes (?months=N, por defecto 6). */
   @Get('income-by-month')
   incomeByMonth(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Query() query: IncomeReportDto,
   ) {
     return this.reports.getIncomeByMonth(ownerId, query.months);

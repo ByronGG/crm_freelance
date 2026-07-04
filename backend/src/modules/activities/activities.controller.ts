@@ -29,14 +29,17 @@ export class ActivitiesController {
   constructor(private readonly activities: ActivitiesService) {}
 
   @Post()
-  create(@CurrentUser('id') ownerId: string, @Body() dto: CreateActivityDto) {
+  create(
+    @CurrentUser('accountId') ownerId: string,
+    @Body() dto: CreateActivityDto,
+  ) {
     return this.activities.create(ownerId, dto);
   }
 
   /** Lista/timeline de actividades (filtrar por contactId para la timeline). */
   @Get()
   findAll(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Query() query: QueryActivitiesDto,
   ) {
     return this.activities.findAll(ownerId, query);
@@ -44,7 +47,7 @@ export class ActivitiesController {
 
   @Get(':id')
   findOne(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.activities.findOne(ownerId, id);
@@ -52,7 +55,7 @@ export class ActivitiesController {
 
   @Patch(':id')
   update(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateActivityDto,
   ) {
@@ -62,7 +65,7 @@ export class ActivitiesController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.activities.remove(ownerId, id);

@@ -23,6 +23,9 @@ hasta los proyectos contratados y su facturación.
 | Notificaciones | Campana in-app con contador; jobs diarios que avisan de tareas y facturas vencidas |
 | Búsqueda global | `Ctrl/Cmd+K` en la topbar: busca contactos, oportunidades, proyectos y propuestas a la vez |
 | Dashboard | Valor en pipeline, cobros pendientes, ingresos del mes, tareas del día |
+| Modo agencia | El ADMIN invita miembros (rol MEMBER) que comparten la cartera de la cuenta; datos aislados por cuenta y gestión de equipo protegida por rol |
+| Time-tracking | Registro de horas por proyecto con total dedicado |
+| Plantillas | Plantillas de propuesta reutilizables que precargan ítems al crear |
 
 ## Flujo de uso
 
@@ -165,8 +168,10 @@ docker compose up --build   # db + backend + frontend
 | frontend | `npm run build`        | `tsc -b && vite build`                  |
 | frontend | `npm run lint`         | **oxlint** (no ESLint)                  |
 
-Tras `npm run seed` puedes entrar con **`demo@crm.test` / `demo1234`** (incluye
-contactos, pipeline, propuestas, proyectos y facturas de ejemplo).
+Tras `npm run seed` puedes entrar como **ADMIN** con `demo@crm.test` / `demo1234`
+o como **MEMBER** con `miembro@crm.test` / `demo1234` (ambos comparten la misma
+cartera). Incluye contactos, pipeline, propuestas, proyectos, facturas, tiempo
+registrado y una plantilla de ejemplo.
 
 Cada PR ejecuta el workflow de CI (`.github/workflows/ci.yml`): lint + tests +
 build de backend y frontend.

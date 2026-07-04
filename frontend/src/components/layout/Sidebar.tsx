@@ -8,13 +8,17 @@ import {
   Settings,
   Target,
   Users,
+  UsersRound,
   type LucideIcon,
 } from 'lucide-react'
+
+import { useAuth } from '../../features/auth/AuthContext'
 
 interface NavItem {
   to: string
   label: string
   icon: LucideIcon
+  adminOnly?: boolean
 }
 
 const NAV: NavItem[] = [
@@ -25,10 +29,14 @@ const NAV: NavItem[] = [
   { to: '/projects', label: 'Proyectos', icon: Briefcase },
   { to: '/tasks', label: 'Tareas', icon: ListTodo },
   { to: '/invoices', label: 'Facturas', icon: Receipt },
+  { to: '/team', label: 'Equipo', icon: UsersRound, adminOnly: true },
   { to: '/settings', label: 'Ajustes', icon: Settings },
 ]
 
 export function Sidebar() {
+  const { user } = useAuth()
+  const items = NAV.filter((i) => !i.adminOnly || user?.role === 'ADMIN')
+
   return (
     <aside className="flex w-60 flex-col border-r border-line bg-surface">
       <div className="flex items-center gap-2.5 px-5 py-4">
@@ -39,7 +47,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-0.5 px-3 py-2">
-        {NAV.map(({ to, label, icon: Icon }) => (
+        {items.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}

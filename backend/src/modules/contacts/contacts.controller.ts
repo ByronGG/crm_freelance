@@ -31,13 +31,16 @@ export class ContactsController {
   constructor(private readonly contacts: ContactsService) {}
 
   @Post()
-  create(@CurrentUser('id') ownerId: string, @Body() dto: CreateContactDto) {
+  create(
+    @CurrentUser('accountId') ownerId: string,
+    @Body() dto: CreateContactDto,
+  ) {
     return this.contacts.create(ownerId, dto);
   }
 
   @Get()
   findAll(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Query() query: QueryContactsDto,
   ) {
     return this.contacts.findAll(ownerId, query);
@@ -45,7 +48,9 @@ export class ContactsController {
 
   /** Exporta los contactos de la cuenta a CSV. Antes de :id para no colisionar. */
   @Get('export.csv')
-  async exportCsv(@CurrentUser('id') ownerId: string): Promise<StreamableFile> {
+  async exportCsv(
+    @CurrentUser('accountId') ownerId: string,
+  ): Promise<StreamableFile> {
     const csv = await this.contacts.exportCsv(ownerId);
     return new StreamableFile(Buffer.from(csv, 'utf8'), {
       type: 'text/csv; charset=utf-8',
@@ -56,7 +61,7 @@ export class ContactsController {
   /** Importa contactos desde un CSV (texto en el cuerpo). */
   @Post('import')
   importCsv(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Body() dto: ImportContactsDto,
   ) {
     return this.contacts.importCsv(ownerId, dto.csv);
@@ -64,7 +69,7 @@ export class ContactsController {
 
   @Get(':id')
   findOne(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.contacts.findOne(ownerId, id);
@@ -72,7 +77,7 @@ export class ContactsController {
 
   @Patch(':id')
   update(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateContactDto,
   ) {
@@ -82,7 +87,7 @@ export class ContactsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.contacts.remove(ownerId, id);

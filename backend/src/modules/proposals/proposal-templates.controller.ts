@@ -8,39 +8,34 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { FilesService } from './files.service';
-import { CreateAttachmentDto } from './dto/create-attachment.dto';
-import { QueryAttachmentsDto } from './dto/query-attachments.dto';
+import { ProposalTemplatesService } from './proposal-templates.service';
+import { CreateProposalTemplateDto } from './dto/create-template.dto';
 
-@ApiTags('files')
+// Ruta propia para no colisionar con /proposals/:id.
+@ApiTags('proposal-templates')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('attachments')
-export class FilesController {
-  constructor(private readonly files: FilesService) {}
+@Controller('proposal-templates')
+export class ProposalTemplatesController {
+  constructor(private readonly templates: ProposalTemplatesService) {}
 
-  /** Registra un adjunto (metadatos + URL). */
   @Post()
   create(
     @CurrentUser('accountId') ownerId: string,
-    @Body() dto: CreateAttachmentDto,
+    @Body() dto: CreateProposalTemplateDto,
   ) {
-    return this.files.create(ownerId, dto);
+    return this.templates.create(ownerId, dto);
   }
 
   @Get()
-  findAll(
-    @CurrentUser('accountId') ownerId: string,
-    @Query() query: QueryAttachmentsDto,
-  ) {
-    return this.files.findAll(ownerId, query);
+  findAll(@CurrentUser('accountId') ownerId: string) {
+    return this.templates.findAll(ownerId);
   }
 
   @Get(':id')
@@ -48,7 +43,7 @@ export class FilesController {
     @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.files.findOne(ownerId, id);
+    return this.templates.findOne(ownerId, id);
   }
 
   @Delete(':id')
@@ -57,6 +52,6 @@ export class FilesController {
     @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.files.remove(ownerId, id);
+    return this.templates.remove(ownerId, id);
   }
 }

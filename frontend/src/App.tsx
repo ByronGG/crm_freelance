@@ -13,6 +13,7 @@ import { InvoicesPage } from './features/invoices/InvoicesPage'
 import { ProjectsPage } from './features/projects/ProjectsPage'
 import { TasksPage } from './features/tasks/TasksPage'
 import { SettingsPage } from './features/settings/SettingsPage'
+import { TeamPage } from './features/team/TeamPage'
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/invoices" element={<InvoicesPage />} />
+          <Route path="/team" element={<TeamPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>

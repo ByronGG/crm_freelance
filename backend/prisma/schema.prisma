@@ -31,7 +31,14 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // Datos propiedad de la cuenta (aislamiento por usuario).
+  // Modo agencia: un MEMBER pertenece a la cuenta de un ADMIN (accountOwner).
+  // El ADMIN tiene accountOwnerId nulo (su propia cuenta). El "accountId" con
+  // el que se aíslan los datos es accountOwnerId ?? id.
+  accountOwnerId String?
+  accountOwner   User?   @relation("AccountMembers", fields: [accountOwnerId], references: [id], onDelete: Cascade)
+  members        User[]  @relation("AccountMembers")
+
+  // Datos propiedad de la cuenta (aislamiento por accountId).
   companies      Company[]
   contacts       Contact[]
   deals          Deal[]
@@ -40,12 +47,14 @@ model User {
   activities     Activity[]
   tasks          Task[]
   invoices       Invoice[]
-  tags           Tag[]
-  attachments    Attachment[]
-  notifications  Notification[]
-  refreshTokens  RefreshToken[]
-  companyProfile CompanyProfile?
-  settings       Setting[]
+  tags              Tag[]
+  attachments       Attachment[]
+  notifications     Notification[]
+  refreshTokens     RefreshToken[]
+  timeEntries       TimeEntry[]
+  proposalTemplates ProposalTemplate[]
+  companyProfile    CompanyProfile?
+  settings          Setting[]
 }
 
 // Refresh tokens persistidos (uno por sesión). Permiten rotación y revocación:
@@ -234,6 +243,35 @@ model ProposalItem {
   @@index([proposalId])
 }
 
+// Plantilla reutilizable de propuesta: precarga ítems y notas al crear una.
+model ProposalTemplate {
+  id        String   @id @default(uuid())
+  name      String
+  currency  String   @default("USD")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  items ProposalTemplateItem[]
+
+  @@index([ownerId])
+}
+
+model ProposalTemplateItem {
+  id          String  @id @default(uuid())
+  description String
+  quantity    Decimal @default(1) @db.Decimal(12, 2)
+  unitPrice   Decimal @default(0) @db.Decimal(12, 2)
+
+  template   ProposalTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId String
+
+  @@index([templateId])
+}
+
 // ───────────────────────────── projects ─────────────────────────────
 
 enum ProjectStatus {
@@ -260,10 +298,29 @@ model Project {
   deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: SetNull)
   dealId String? @unique
 
-  milestones Milestone[]
-  invoices   Invoice[]
+  milestones  Milestone[]
+  invoices    Invoice[]
+  timeEntries TimeEntry[]
 
   @@index([ownerId])
+}
+
+// Registro de tiempo dedicado a un proyecto (time-tracking).
+model TimeEntry {
+  id          String   @id @default(uuid())
+  description String
+  minutes     Int
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  @@index([ownerId])
+  @@index([projectId])
 }
 
 enum MilestoneStatus {

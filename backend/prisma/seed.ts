@@ -268,8 +268,57 @@ async function main(): Promise<void> {
     ],
   });
 
+  // Miembro del equipo (modo agencia): comparte la cartera del ADMIN.
+  await prisma.user.create({
+    data: {
+      email: 'miembro@crm.test',
+      name: 'Miembro Demo',
+      passwordHash: await bcrypt.hash(DEMO_PASSWORD, 12),
+      role: 'MEMBER',
+      accountOwnerId: ownerId,
+    },
+  });
+
+  // Tiempo dedicado al proyecto (time-tracking).
+  await prisma.timeEntry.createMany({
+    data: [
+      {
+        ownerId,
+        projectId: project.id,
+        description: 'Kickoff y análisis',
+        minutes: 120,
+        date: daysFromNow(-7),
+      },
+      {
+        ownerId,
+        projectId: project.id,
+        description: 'Maquetación de la home',
+        minutes: 180,
+        date: daysFromNow(-3),
+      },
+    ],
+  });
+
+  // Plantilla de propuesta reutilizable.
+  await prisma.proposalTemplate.create({
+    data: {
+      ownerId,
+      name: 'Sitio web corporativo',
+      currency: 'EUR',
+      notes: 'Incluye diseño, desarrollo y despliegue.',
+      items: {
+        create: [
+          { description: 'Diseño UI/UX', quantity: 1, unitPrice: 3000 },
+          { description: 'Desarrollo', quantity: 1, unitPrice: 6000 },
+          { description: 'Despliegue y formación', quantity: 1, unitPrice: 1000 },
+        ],
+      },
+    },
+  });
+
   console.log('Seed completado.');
-  console.log(`Usuario demo: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
+  console.log(`Admin: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
+  console.log(`Miembro: miembro@crm.test / ${DEMO_PASSWORD}`);
 }
 
 main()

@@ -29,18 +29,24 @@ export class TasksController {
   constructor(private readonly tasks: TasksService) {}
 
   @Post()
-  create(@CurrentUser('id') ownerId: string, @Body() dto: CreateTaskDto) {
+  create(
+    @CurrentUser('accountId') ownerId: string,
+    @Body() dto: CreateTaskDto,
+  ) {
     return this.tasks.create(ownerId, dto);
   }
 
   @Get()
-  findAll(@CurrentUser('id') ownerId: string, @Query() query: QueryTasksDto) {
+  findAll(
+    @CurrentUser('accountId') ownerId: string,
+    @Query() query: QueryTasksDto,
+  ) {
     return this.tasks.findAll(ownerId, query);
   }
 
   @Get(':id')
   findOne(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.tasks.findOne(ownerId, id);
@@ -48,7 +54,7 @@ export class TasksController {
 
   @Patch(':id')
   update(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTaskDto,
   ) {
@@ -58,7 +64,7 @@ export class TasksController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.tasks.remove(ownerId, id);

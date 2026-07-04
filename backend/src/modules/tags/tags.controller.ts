@@ -31,19 +31,19 @@ export class TagsController {
   constructor(private readonly tags: TagsService) {}
 
   @Post()
-  create(@CurrentUser('id') ownerId: string, @Body() dto: CreateTagDto) {
+  create(@CurrentUser('accountId') ownerId: string, @Body() dto: CreateTagDto) {
     return this.tags.create(ownerId, dto);
   }
 
   @Get()
-  findAll(@CurrentUser('id') ownerId: string) {
+  findAll(@CurrentUser('accountId') ownerId: string) {
     return this.tags.findAll(ownerId);
   }
 
   /** Etiquetas de varias entidades a la vez (?ids=uuid1,uuid2 — evita N+1). */
   @Get('for-entities')
   listForEntities(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Query() query: QueryTagsForEntitiesDto,
   ) {
     return this.tags.listForEntities(ownerId, query.entityType, query.ids);
@@ -52,7 +52,7 @@ export class TagsController {
   /** Etiquetas aplicadas a una entidad (contacto u oportunidad). */
   @Get('entity/:entityType/:entityId')
   listForEntity(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('entityType') entityType: TaggableType,
     @Param('entityId', ParseUUIDPipe) entityId: string,
   ) {
@@ -61,7 +61,7 @@ export class TagsController {
 
   @Patch(':id')
   update(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTagDto,
   ) {
@@ -71,7 +71,7 @@ export class TagsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.tags.remove(ownerId, id);
@@ -81,7 +81,7 @@ export class TagsController {
   @Post(':id/apply')
   @HttpCode(HttpStatus.NO_CONTENT)
   apply(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ApplyTagDto,
   ) {
@@ -92,7 +92,7 @@ export class TagsController {
   @Delete(':id/apply')
   @HttpCode(HttpStatus.NO_CONTENT)
   unapply(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ApplyTagDto,
   ) {

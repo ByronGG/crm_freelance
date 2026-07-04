@@ -30,24 +30,30 @@ export class DealsController {
   constructor(private readonly deals: DealsService) {}
 
   @Post()
-  create(@CurrentUser('id') ownerId: string, @Body() dto: CreateDealDto) {
+  create(
+    @CurrentUser('accountId') ownerId: string,
+    @Body() dto: CreateDealDto,
+  ) {
     return this.deals.create(ownerId, dto);
   }
 
   @Get()
-  findAll(@CurrentUser('id') ownerId: string, @Query() query: QueryDealsDto) {
+  findAll(
+    @CurrentUser('accountId') ownerId: string,
+    @Query() query: QueryDealsDto,
+  ) {
     return this.deals.findAll(ownerId, query);
   }
 
   /** Tablero Kanban: oportunidades agrupadas por etapa. */
   @Get('board')
-  board(@CurrentUser('id') ownerId: string) {
+  board(@CurrentUser('accountId') ownerId: string) {
     return this.deals.board(ownerId);
   }
 
   @Get(':id')
   findOne(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.deals.findOne(ownerId, id);
@@ -55,7 +61,7 @@ export class DealsController {
 
   @Patch(':id')
   update(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateDealDto,
   ) {
@@ -65,7 +71,7 @@ export class DealsController {
   /** Cambia la etapa (mover la tarjeta en el Kanban). */
   @Patch(':id/stage')
   changeStage(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ChangeStageDto,
   ) {
@@ -75,7 +81,7 @@ export class DealsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.deals.remove(ownerId, id);
