@@ -26,9 +26,25 @@ export interface ProjectRelDeal {
   title: string
 }
 
+export interface TimeEntry {
+  id: string
+  description: string
+  minutes: number
+  date: string
+}
+
 export interface ProjectDetail extends Project {
   milestones: Milestone[]
+  timeEntries: TimeEntry[]
+  totalMinutes: number
   deal?: ProjectRelDeal | null
+}
+
+/** Campos del formulario de registro de tiempo (horas en la UI). */
+export interface TimeEntryForm {
+  description: string
+  hours: string
+  date: string
 }
 
 /** Campos del formulario de proyecto. */

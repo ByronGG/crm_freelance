@@ -11,6 +11,7 @@ interface JwtPayload {
   sub: string;
   email: string;
   role: Role;
+  accountId: string;
 }
 
 /**
@@ -29,6 +30,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   /** Lo retornado aquí es lo que `@CurrentUser()` inyecta en los handlers. */
   validate(payload: JwtPayload): AuthUser {
-    return { id: payload.sub, email: payload.email, role: payload.role };
+    return {
+      id: payload.sub,
+      email: payload.email,
+      role: payload.role,
+      // Compatibilidad con tokens antiguos sin accountId: cae a su propio id.
+      accountId: payload.accountId ?? payload.sub,
+    };
   }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
-import { Plus, Trash2 } from 'lucide-react'
+import { LayoutTemplate, Plus, Save, Trash2 } from 'lucide-react'
 
 import { Button } from '../../components/ui/Button'
 import { Modal } from '../../components/ui/Modal'
@@ -14,6 +14,7 @@ import { CURRENCIES } from '../../lib/currencies'
 import { formatAmount } from '../../lib/format'
 import { listContacts } from '../contacts/api'
 import { listDeals } from '../deals/api'
+import { createTemplate, listTemplates } from '../templates/api'
 import { createProposal, getProposal, updateProposal } from './api'
 import type { ItemForm, Proposal, ProposalForm } from './types'
 
@@ -45,6 +46,7 @@ export function ProposalFormModal({ open, onClose, proposal }: Props) {
   const queryClient = useQueryClient()
   const [form, setForm] = useState<ProposalForm>(EMPTY)
   const [error, setError] = useState<string | null>(null)
+  const [templateName, setTemplateName] = useState<string | null>(null)
 
   const contacts = useQuery({
     queryKey: ['contacts', ''],
@@ -54,6 +56,11 @@ export function ProposalFormModal({ open, onClose, proposal }: Props) {
   const deals = useQuery({
     queryKey: ['deals', 'list'],
     queryFn: listDeals,
+    enabled: open,
+  })
+  const templates = useQuery({
+    queryKey: ['proposal-templates'],
+    queryFn: listTemplates,
     enabled: open,
   })
 
@@ -67,6 +74,7 @@ export function ProposalFormModal({ open, onClose, proposal }: Props) {
   useEffect(() => {
     if (!open) return
     setError(null)
+    setTemplateName(null)
     if (!proposal) {
       setForm({ ...EMPTY, items: [{ ...EMPTY_ITEM }] })
     } else if (detail.data) {
@@ -104,6 +112,39 @@ export function ProposalFormModal({ open, onClose, proposal }: Props) {
           ? 'Revisa los datos: hay algún campo con formato inválido.'
           : 'No se pudo guardar la propuesta.',
       )
+    },
+  })
+
+  // Precarga los ítems, moneda y notas de una plantilla en el formulario.
+  function applyTemplate(templateId: string) {
+    const tpl = templates.data?.find((t) => t.id === templateId)
+    if (!tpl) return
+    setForm((f) => ({
+      ...f,
+      currency: tpl.currency,
+      notes: tpl.notes ?? f.notes,
+      items:
+        tpl.items.length > 0
+          ? tpl.items.map((i) => ({
+              description: i.description,
+              quantity: String(Number(i.quantity)),
+              unitPrice: String(Number(i.unitPrice)),
+            }))
+          : [{ ...EMPTY_ITEM }],
+    }))
+  }
+
+  const saveTemplate = useMutation({
+    mutationFn: (name: string) =>
+      createTemplate({
+        name,
+        currency: form.currency,
+        notes: form.notes,
+        items: form.items,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposal-templates'] })
+      setTemplateName(null)
     },
   })
 
@@ -214,17 +255,76 @@ export function ProposalFormModal({ open, onClose, proposal }: Props) {
             </label>
           </div>
 
+          {!proposal && (templates.data?.length ?? 0) > 0 && (
+            <label className="block">
+              <span className="mb-1.5 flex items-center gap-1.5 text-sm text-muted">
+                <LayoutTemplate size={14} className="text-subtle" /> Cargar
+                plantilla
+              </span>
+              <select
+                className={fieldInputClass}
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) applyTemplate(e.target.value)
+                }}
+              >
+                <option value="">Elige una plantilla…</option>
+                {templates.data?.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
           <div>
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-sm text-muted">Ítems</span>
-              <button
-                type="button"
-                onClick={addItem}
-                className="inline-flex items-center gap-1 text-xs font-medium text-brand-fg hover:underline"
-              >
-                <Plus size={13} /> Añadir ítem
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTemplateName('')}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-fg"
+                >
+                  <Save size={13} /> Guardar como plantilla
+                </button>
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-fg hover:underline"
+                >
+                  <Plus size={13} /> Añadir ítem
+                </button>
+              </div>
             </div>
+
+            {templateName !== null && (
+              <div className="mb-2 flex gap-2">
+                <input
+                  autoFocus
+                  className={`${fieldBase} min-w-0 flex-1`}
+                  placeholder="Nombre de la plantilla"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={!templateName.trim() || saveTemplate.isPending}
+                  onClick={() => saveTemplate.mutate(templateName.trim())}
+                >
+                  Guardar
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setTemplateName(null)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            )}
 
             <div className="space-y-2">
               {form.items.map((item, i) => (

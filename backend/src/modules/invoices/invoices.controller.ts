@@ -33,13 +33,16 @@ export class InvoicesController {
 
   /** Genera una factura a partir de un proyecto. */
   @Post()
-  create(@CurrentUser('id') ownerId: string, @Body() dto: CreateInvoiceDto) {
+  create(
+    @CurrentUser('accountId') ownerId: string,
+    @Body() dto: CreateInvoiceDto,
+  ) {
     return this.invoices.create(ownerId, dto);
   }
 
   @Get()
   findAll(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Query() query: QueryInvoicesDto,
   ) {
     return this.invoices.findAll(ownerId, query);
@@ -47,7 +50,7 @@ export class InvoicesController {
 
   @Get(':id')
   findOne(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.invoices.findOne(ownerId, id);
@@ -56,7 +59,7 @@ export class InvoicesController {
   /** Descarga la factura en PDF. */
   @Get(':id/pdf')
   async downloadPdf(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<StreamableFile> {
     const { filename, buffer } = await this.invoices.generatePdf(ownerId, id);
@@ -68,7 +71,7 @@ export class InvoicesController {
 
   @Patch(':id')
   update(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateInvoiceDto,
   ) {
@@ -78,7 +81,7 @@ export class InvoicesController {
   /** Cambia el estado de cobro: Borrador → Emitida → Pagada → Vencida. */
   @Patch(':id/status')
   changeStatus(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ChangeInvoiceStatusDto,
   ) {
@@ -88,7 +91,7 @@ export class InvoicesController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.invoices.remove(ownerId, id);
@@ -99,7 +102,7 @@ export class InvoicesController {
   /** Registra un pago (total o parcial). */
   @Post(':id/payments')
   addPayment(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreatePaymentDto,
   ) {
@@ -108,7 +111,7 @@ export class InvoicesController {
 
   @Delete(':id/payments/:paymentId')
   removePayment(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('paymentId', ParseUUIDPipe) paymentId: string,
   ) {

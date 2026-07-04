@@ -14,7 +14,7 @@ export class DashboardController {
 
   /** Métricas clave del negocio para la pantalla de inicio. */
   @Get()
-  getSummary(@CurrentUser('id') ownerId: string) {
+  getSummary(@CurrentUser('accountId') ownerId: string) {
     return this.dashboard.getSummary(ownerId);
   }
 }

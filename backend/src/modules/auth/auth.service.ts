@@ -15,14 +15,19 @@ import { Role, User } from '../../generated/prisma/client';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
-/** Datos base firmados en el access token. */
+/** Datos base firmados en los tokens. */
 interface TokenPayload {
   sub: string;
   email: string;
   role: Role;
 }
 
-/** El refresh token además lleva un `jti` para poder rotarlo/revocarlo. */
+/** El access token lleva además el accountId con el que se aíslan los datos. */
+interface AccessPayload extends TokenPayload {
+  accountId: string;
+}
+
+/** El refresh token lleva un `jti` para poder rotarlo/revocarlo. */
 interface RefreshPayload extends TokenPayload {
   jti: string;
 }
@@ -193,11 +198,15 @@ export class AuthService {
       email: user.email,
       role: user.role,
     };
+    // Un MEMBER comparte la cuenta de su ADMIN; un ADMIN es su propia cuenta.
+    const accountId = user.accountOwnerId ?? user.id;
     const jti = randomUUID();
+
+    const accessPayload: AccessPayload = { ...base, accountId };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.signToken(
-        base,
+        accessPayload,
         this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         this.config.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN'),
       ),
@@ -231,7 +240,7 @@ export class AuthService {
    * por eso se centraliza aquí el único cast necesario.
    */
   private signToken(
-    payload: TokenPayload | RefreshPayload,
+    payload: TokenPayload | AccessPayload | RefreshPayload,
     secret: string,
     expiresIn: string,
   ): Promise<string> {

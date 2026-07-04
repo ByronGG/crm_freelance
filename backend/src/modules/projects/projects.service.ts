@@ -7,9 +7,10 @@ import {
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { DealsService } from '../deals/deals.service';
-import { Milestone, Project } from '../../generated/prisma/client';
+import { Milestone, Project, TimeEntry } from '../../generated/prisma/client';
 import { CreateMilestoneDto } from './dto/create-milestone.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { CreateTimeEntryDto } from './dto/create-time-entry.dto';
 import { QueryProjectsDto } from './dto/query-projects.dto';
 import { UpdateMilestoneDto } from './dto/update-milestone.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -89,12 +90,18 @@ export class ProjectsService {
       include: {
         deal: true,
         milestones: { orderBy: [{ dueDate: 'asc' }, { title: 'asc' }] },
+        timeEntries: { orderBy: { date: 'desc' } },
       },
     });
     if (!project) {
       throw new NotFoundException('Proyecto no encontrado');
     }
-    return project;
+    // Total de minutos registrados, para mostrar horas dedicadas.
+    const totalMinutes = project.timeEntries.reduce(
+      (sum, e) => sum + e.minutes,
+      0,
+    );
+    return { ...project, totalMinutes };
   }
 
   async update(
@@ -176,6 +183,42 @@ export class ProjectsService {
   ): Promise<void> {
     await this.assertMilestoneOwned(ownerId, projectId, milestoneId);
     await this.prisma.milestone.delete({ where: { id: milestoneId } });
+  }
+
+  // ─────────────────────────── time-tracking ───────────────────────────
+
+  /** Registra tiempo dedicado a un proyecto de la cuenta. */
+  async addTimeEntry(
+    ownerId: string,
+    projectId: string,
+    dto: CreateTimeEntryDto,
+  ): Promise<TimeEntry> {
+    await this.assertOwned(ownerId, projectId);
+    return this.prisma.timeEntry.create({
+      data: {
+        ownerId,
+        projectId,
+        description: dto.description,
+        minutes: dto.minutes,
+        date: dto.date ? new Date(dto.date) : new Date(),
+      },
+    });
+  }
+
+  /** Elimina un registro de tiempo del proyecto (acotado a la cuenta). */
+  async removeTimeEntry(
+    ownerId: string,
+    projectId: string,
+    entryId: string,
+  ): Promise<void> {
+    const entry = await this.prisma.timeEntry.findFirst({
+      where: { id: entryId, projectId, ownerId },
+      select: { id: true },
+    });
+    if (!entry) {
+      throw new NotFoundException('Registro de tiempo no encontrado');
+    }
+    await this.prisma.timeEntry.delete({ where: { id: entryId } });
   }
 
   // ───────────────────────────── helpers ─────────────────────────────

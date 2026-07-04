@@ -27,31 +27,34 @@ export class SettingsController {
   // Las rutas de perfil de empresa van antes de las de :key para no chocar.
 
   @Get('company-profile')
-  getCompanyProfile(@CurrentUser('id') ownerId: string) {
+  getCompanyProfile(@CurrentUser('accountId') ownerId: string) {
     return this.settings.getCompanyProfile(ownerId);
   }
 
   @Put('company-profile')
   upsertCompanyProfile(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Body() dto: UpsertCompanyProfileDto,
   ) {
     return this.settings.upsertCompanyProfile(ownerId, dto);
   }
 
   @Get()
-  listSettings(@CurrentUser('id') ownerId: string) {
+  listSettings(@CurrentUser('accountId') ownerId: string) {
     return this.settings.listSettings(ownerId);
   }
 
   @Get(':key')
-  getSetting(@CurrentUser('id') ownerId: string, @Param('key') key: string) {
+  getSetting(
+    @CurrentUser('accountId') ownerId: string,
+    @Param('key') key: string,
+  ) {
     return this.settings.getSetting(ownerId, key);
   }
 
   @Put(':key')
   upsertSetting(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('key') key: string,
     @Body() dto: UpsertSettingDto,
   ) {
@@ -60,7 +63,10 @@ export class SettingsController {
 
   @Delete(':key')
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteSetting(@CurrentUser('id') ownerId: string, @Param('key') key: string) {
+  deleteSetting(
+    @CurrentUser('accountId') ownerId: string,
+    @Param('key') key: string,
+  ) {
     return this.settings.deleteSetting(ownerId, key);
   }
 }

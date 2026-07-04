@@ -6,6 +6,9 @@ export interface AuthUser {
   id: string;
   email: string;
   role: Role;
+  // Cuenta a la que se aíslan los datos: la propia (ADMIN) o la del ADMIN
+  // dueño (MEMBER). Los controladores de datos filtran por accountId.
+  accountId: string;
 }
 
 /**

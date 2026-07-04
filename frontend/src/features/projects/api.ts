@@ -6,6 +6,7 @@ import type {
   ProjectDetail,
   ProjectForm,
   ProjectStatus,
+  TimeEntryForm,
 } from './types'
 
 interface ListParams {
@@ -97,4 +98,24 @@ export async function removeMilestone(
   milestoneId: string,
 ): Promise<void> {
   await api.delete(`/projects/${projectId}/milestones/${milestoneId}`)
+}
+
+// ─────────────────────────── time-tracking ───────────────────────────
+
+export async function addTimeEntry(
+  projectId: string,
+  form: TimeEntryForm,
+): Promise<void> {
+  await api.post(`/projects/${projectId}/time`, {
+    description: form.description.trim(),
+    minutes: Math.round(Number(form.hours) * 60),
+    ...(form.date ? { date: form.date } : {}),
+  })
+}
+
+export async function removeTimeEntry(
+  projectId: string,
+  entryId: string,
+): Promise<void> {
+  await api.delete(`/projects/${projectId}/time/${entryId}`)
 }

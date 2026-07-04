@@ -28,13 +28,16 @@ export class CompaniesController {
   constructor(private readonly companies: CompaniesService) {}
 
   @Post()
-  create(@CurrentUser('id') ownerId: string, @Body() dto: CreateCompanyDto) {
+  create(
+    @CurrentUser('accountId') ownerId: string,
+    @Body() dto: CreateCompanyDto,
+  ) {
     return this.companies.create(ownerId, dto);
   }
 
   @Get()
   findAll(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Query('search') search?: string,
   ) {
     return this.companies.findAll(ownerId, search);
@@ -42,7 +45,7 @@ export class CompaniesController {
 
   @Get(':id')
   findOne(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.companies.findOne(ownerId, id);
@@ -50,7 +53,7 @@ export class CompaniesController {
 
   @Patch(':id')
   update(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCompanyDto,
   ) {
@@ -60,7 +63,7 @@ export class CompaniesController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.companies.remove(ownerId, id);

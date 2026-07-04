@@ -35,6 +35,7 @@ function delegate(): MockDelegate {
 
 /** Mock tipado de PrismaService con un delegate por modelo del esquema. */
 export interface PrismaMock {
+  user: MockDelegate;
   company: MockDelegate;
   contact: MockDelegate;
   deal: MockDelegate;
@@ -52,6 +53,8 @@ export interface PrismaMock {
   taggable: MockDelegate;
   attachment: MockDelegate;
   refreshToken: MockDelegate;
+  timeEntry: MockDelegate;
+  proposalTemplate: MockDelegate;
   $transaction: jest.Mock;
 }
 
@@ -62,6 +65,7 @@ export interface PrismaMock {
  */
 export function createPrismaMock(): PrismaMock {
   return {
+    user: delegate(),
     company: delegate(),
     contact: delegate(),
     deal: delegate(),
@@ -79,6 +83,8 @@ export function createPrismaMock(): PrismaMock {
     taggable: delegate(),
     attachment: delegate(),
     refreshToken: delegate(),
+    timeEntry: delegate(),
+    proposalTemplate: delegate(),
     // Por defecto ejecuta las operaciones del array de la transacción.
     $transaction: jest.fn((ops: unknown) =>
       Array.isArray(ops) ? Promise.all(ops) : Promise.resolve(ops),

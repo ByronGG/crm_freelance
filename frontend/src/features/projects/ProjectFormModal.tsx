@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
-import { Plus, Trash2 } from 'lucide-react'
+import { Clock, Plus, Trash2 } from 'lucide-react'
 
 import { Button } from '../../components/ui/Button'
 import { Modal } from '../../components/ui/Modal'
@@ -11,12 +11,15 @@ import {
   fieldBase,
   fieldInputClass,
 } from '../../components/ui/TextField'
+import { formatDate } from '../../lib/format'
 import { PROJECT_STATUSES, PROJECT_STATUS_LABEL } from './constants'
 import {
   addMilestone,
+  addTimeEntry,
   createProject,
   getProject,
   removeMilestone,
+  removeTimeEntry,
   updateMilestone,
   updateProject,
 } from './api'
@@ -26,7 +29,18 @@ import type {
   Project,
   ProjectForm,
   ProjectStatus,
+  TimeEntryForm,
 } from './types'
+
+const EMPTY_TIME: TimeEntryForm = { description: '', hours: '', date: '' }
+
+/** Minutos → "Xh Ym" para mostrar el total de tiempo dedicado. */
+function formatMinutes(total: number): string {
+  const h = Math.floor(total / 60)
+  const m = total % 60
+  if (h === 0) return `${m}m`
+  return m === 0 ? `${h}h` : `${h}h ${m}m`
+}
 
 const MILESTONE_STATUSES: { value: MilestoneStatus; label: string }[] = [
   { value: 'PENDING', label: 'Pendiente' },
@@ -68,6 +82,7 @@ export function ProjectFormModal({ open, onClose, project }: Props) {
   const queryClient = useQueryClient()
   const [form, setForm] = useState<ProjectForm>(EMPTY)
   const [milestone, setMilestone] = useState<MilestoneForm>(EMPTY_MILESTONE)
+  const [time, setTime] = useState<TimeEntryForm>(EMPTY_TIME)
   const [error, setError] = useState<string | null>(null)
 
   const detail = useQuery({
@@ -80,6 +95,7 @@ export function ProjectFormModal({ open, onClose, project }: Props) {
     if (!open) return
     setError(null)
     setMilestone(EMPTY_MILESTONE)
+    setTime(EMPTY_TIME)
     setForm(project ? fromProject(project) : EMPTY)
   }, [open, project])
 
@@ -119,6 +135,18 @@ export function ProjectFormModal({ open, onClose, project }: Props) {
   })
   const removeM = useMutation({
     mutationFn: (id: string) => removeMilestone(project!.id, id),
+    onSuccess: refetchDetail,
+  })
+
+  const addT = useMutation({
+    mutationFn: (f: TimeEntryForm) => addTimeEntry(project!.id, f),
+    onSuccess: () => {
+      setTime(EMPTY_TIME)
+      refetchDetail()
+    },
+  })
+  const removeT = useMutation({
+    mutationFn: (id: string) => removeTimeEntry(project!.id, id),
     onSuccess: refetchDetail,
   })
 
@@ -282,6 +310,86 @@ export function ProjectFormModal({ open, onClose, project }: Props) {
               variant="primary"
               disabled={!milestone.title.trim() || addM.isPending}
               onClick={() => addM.mutate(milestone)}
+            >
+              <Plus size={16} />
+            </Button>
+          </div>
+
+          {/* Time-tracking */}
+          <div className="mt-5 flex items-center justify-between">
+            <p className="inline-flex items-center gap-1.5 text-sm text-muted">
+              <Clock size={14} className="text-subtle" /> Tiempo dedicado
+            </p>
+            <span className="text-sm font-medium text-fg">
+              {formatMinutes(detail.data.totalMinutes)}
+            </span>
+          </div>
+
+          <div className="mt-2 space-y-1.5">
+            {detail.data.timeEntries.map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm"
+              >
+                <span className="min-w-0 flex-1 truncate text-fg">
+                  {t.description}
+                </span>
+                <span className="shrink-0 text-xs text-subtle">
+                  {formatDate(t.date)}
+                </span>
+                <span className="w-14 shrink-0 text-right text-xs font-medium text-fg">
+                  {formatMinutes(t.minutes)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeT.mutate(t.id)}
+                  aria-label="Quitar registro"
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-app hover:text-red-600"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+            {detail.data.timeEntries.length === 0 && (
+              <p className="py-1 text-xs text-subtle">Sin tiempo registrado.</p>
+            )}
+          </div>
+
+          <div className="mt-2.5 flex gap-2">
+            <input
+              className={`${fieldBase} min-w-0 flex-1`}
+              placeholder="¿En qué trabajaste?"
+              value={time.description}
+              onChange={(e) =>
+                setTime((p) => ({ ...p, description: e.target.value }))
+              }
+            />
+            <input
+              className={`${fieldBase} w-20 shrink-0`}
+              type="number"
+              min="0"
+              step="0.25"
+              placeholder="Horas"
+              value={time.hours}
+              onChange={(e) =>
+                setTime((p) => ({ ...p, hours: e.target.value }))
+              }
+            />
+            <input
+              className={`${fieldBase} w-40 shrink-0`}
+              type="date"
+              value={time.date}
+              onChange={(e) => setTime((p) => ({ ...p, date: e.target.value }))}
+            />
+            <Button
+              type="button"
+              variant="primary"
+              disabled={
+                !time.description.trim() ||
+                Number(time.hours) <= 0 ||
+                addT.isPending
+              }
+              onClick={() => addT.mutate(time)}
             >
               <Plus size={16} />
             </Button>

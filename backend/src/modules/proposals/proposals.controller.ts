@@ -33,13 +33,16 @@ export class ProposalsController {
   constructor(private readonly proposals: ProposalsService) {}
 
   @Post()
-  create(@CurrentUser('id') ownerId: string, @Body() dto: CreateProposalDto) {
+  create(
+    @CurrentUser('accountId') ownerId: string,
+    @Body() dto: CreateProposalDto,
+  ) {
     return this.proposals.create(ownerId, dto);
   }
 
   @Get()
   findAll(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Query() query: QueryProposalsDto,
   ) {
     return this.proposals.findAll(ownerId, query);
@@ -47,7 +50,7 @@ export class ProposalsController {
 
   @Get(':id')
   findOne(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.proposals.findOne(ownerId, id);
@@ -56,7 +59,7 @@ export class ProposalsController {
   /** Descarga la propuesta en PDF. */
   @Get(':id/pdf')
   async downloadPdf(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<StreamableFile> {
     const { filename, buffer } = await this.proposals.generatePdf(ownerId, id);
@@ -68,7 +71,7 @@ export class ProposalsController {
 
   @Patch(':id')
   update(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateProposalDto,
   ) {
@@ -78,7 +81,7 @@ export class ProposalsController {
   /** Reemplaza la lista de ítems y recalcula el total. */
   @Put(':id/items')
   replaceItems(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateItemsDto,
   ) {
@@ -88,7 +91,7 @@ export class ProposalsController {
   /** Cambia el estado: Borrador → Enviada → Aceptada/Rechazada. */
   @Patch(':id/status')
   changeStatus(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ChangeStatusDto,
   ) {
@@ -98,7 +101,7 @@ export class ProposalsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @CurrentUser('id') ownerId: string,
+    @CurrentUser('accountId') ownerId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.proposals.remove(ownerId, id);
