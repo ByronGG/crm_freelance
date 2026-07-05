@@ -35,6 +35,49 @@ hasta los proyectos contratados y su facturación.
 4. **Proyecto** — una oportunidad ganada se convierte en proyecto con un clic; se le añaden hitos.
 5. **Factura** — se emite desde el proyecto, se registran pagos y se descarga en PDF.
 
+### Diagrama del ciclo y relaciones entre módulos
+
+El flujo comercial (línea continua) va creando la siguiente etapa; la conversión
+de oportunidad a proyecto está **cerrada por la puerta `Deal = WON`** (solo una
+oportunidad ganada puede convertirse, y una sola vez: `Project.dealId` es único).
+Las líneas punteadas son relaciones transversales o de solo lectura. Todo queda
+aislado por `ownerId`.
+
+```mermaid
+flowchart LR
+  subgraph cuenta["Cuenta · ownerId aísla todos los datos"]
+    direction LR
+    C["Contactos<br/>Contact · Company"]
+    D["Pipeline<br/>Deal · valor + etapa"]
+    P["Propuesta<br/>Proposal · ítems"]
+    PR["Proyectos<br/>Project · dealId único"]
+    F["Facturas<br/>Invoice · Payment"]
+
+    C --> D --> P
+    P -->|Deal = WON| PR
+    PR -->|emite| F
+
+    T["Tareas y Actividades<br/>Task / Activity"]
+    N["Notificaciones<br/>campana in-app"]
+    C -.-> T
+    D -.-> T
+    T -->|al vencer| N
+    F -.->|vencida| N
+
+    DB["Inicio · Dashboard + Reports<br/>solo lectura · KPIs"]
+    C -.-> DB
+    D -.-> DB
+    P -.-> DB
+    PR -.-> DB
+    F -.-> DB
+  end
+
+  classDef gate fill:#d1fae5,stroke:#059669,color:#065f46;
+  classDef read fill:#eef2ff,stroke:#6366f1,color:#3730a3;
+  class PR gate;
+  class DB read;
+```
+
 Los jobs programados (diarios y al arrancar el servidor) detectan tareas y
 facturas vencidas y generan avisos en la campana, con deduplicación para que
 las re-ejecuciones no dupliquen notificaciones.
