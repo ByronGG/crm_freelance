@@ -43,7 +43,7 @@ export function Sidebar() {
         <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500 text-white">
           <Home size={16} />
         </span>
-        <span className="text-[15px] font-medium text-fg">CRM</span>
+        <span className="text-[15px] font-medium text-fg">Trato</span>
       </div>
 
       <nav className="flex-1 space-y-0.5 px-3 py-2">

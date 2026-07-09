@@ -42,7 +42,7 @@ export function LoginPage() {
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-500 text-white">
             <LayoutDashboard size={18} />
           </span>
-          <span className="text-lg font-medium text-fg">CRM Freelancers</span>
+          <span className="text-lg font-medium text-fg">Trato · CRM</span>
         </div>
 
         <div className="rounded-2xl border border-line bg-surface p-6">
