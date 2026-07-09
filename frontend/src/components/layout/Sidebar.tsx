@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 
 import { useAuth } from '../../features/auth/AuthContext'
+import { TratoMark } from '../ui/TratoMark'
 
 interface NavItem {
   to: string
@@ -40,9 +41,7 @@ export function Sidebar() {
   return (
     <aside className="flex w-60 flex-col border-r border-line bg-surface">
       <div className="flex items-center gap-2.5 px-5 py-4">
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500 text-white">
-          <Home size={16} />
-        </span>
+        <TratoMark size={32} className="text-brand-500" />
         <span className="text-[15px] font-medium text-fg">Trato</span>
       </div>
 

@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { AxiosError } from 'axios'
-import { LayoutDashboard } from 'lucide-react'
 
 import { useAuth } from './AuthContext'
+import { TratoMark } from '../../components/ui/TratoMark'
 
 export function LoginPage() {
   const { user, login } = useAuth()
@@ -39,9 +39,7 @@ export function LoginPage() {
     <div className="grid min-h-screen place-items-center bg-app px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-500 text-white">
-            <LayoutDashboard size={18} />
-          </span>
+          <TratoMark size={36} className="text-brand-500" />
           <span className="text-lg font-medium text-fg">Trato · CRM</span>
         </div>
 

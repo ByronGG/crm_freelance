@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
   <!-- Trato · CRM — dos nodos unidos = el acuerdo cerrado -->
-  <rect width="48" height="48" rx="11" fill="#10b981"/>
+  <rect width="48" height="48" rx="11" fill="#0ea372"/>
   <rect x="16" y="21" width="16" height="6" rx="3" fill="#ffffff"/>
   <circle cx="16" cy="24" r="7" fill="#ffffff"/>
   <circle cx="32" cy="24" r="7" fill="#ffffff"/>
-  <circle cx="16" cy="24" r="3" fill="#10b981"/>
-  <circle cx="32" cy="24" r="3" fill="#10b981"/>
+  <circle cx="16" cy="24" r="3" fill="#0ea372"/>
+  <circle cx="32" cy="24" r="3" fill="#0ea372"/>
 </svg>
