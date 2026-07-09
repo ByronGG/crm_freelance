@@ -1,8 +1,9 @@
-# CRM para Freelancers y Agencias
+# Trato — CRM para Freelancers y Agencias
 
-Monorepo de un CRM orientado a freelancers y pequeñas agencias de software,
-construido como **monolito modular**: un solo despliegue y una sola base de
-datos, con el código dividido en módulos de dominio de fronteras estrictas.
+**Trato** es un CRM para freelancers y pequeñas agencias de software, en un
+monorepo construido como **monolito modular**: un solo despliegue y una sola
+base de datos, con el código dividido en módulos de dominio de fronteras
+estrictas.
 
 Centraliza la relación comercial completa en una sola app: desde el primer
 contacto de un prospecto, pasando por el pipeline de ventas y las propuestas,
