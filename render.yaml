@@ -1,0 +1,47 @@
+# Render Blueprint — backend NestJS + Postgres administrada (Trato · CRM).
+#
+# Cómo usarlo:
+#   1. En Render: New → Blueprint → conecta este repositorio.
+#   2. Render lee este archivo y crea la BD + el web service.
+#   3. Tras el primer deploy, pega la URL del frontend (Vercel) en CORS_ORIGIN.
+#
+# Nota sobre los cron jobs: en el plan `free` el servicio se duerme tras ~15 min
+# de inactividad, así que los @Cron diarios NO se disparan mientras duerme (solo
+# el catch-up de onModuleInit al despertar). Para que los jobs corran de verdad,
+# usa `plan: starter` (proceso siempre vivo). Docs: https://render.com/docs/blueprint-spec
+
+databases:
+  - name: trato-db
+    databaseName: trato
+    user: trato
+    plan: free            # free: se elimina a los ~30 días. Para permanencia usa Neon o sube de plan.
+
+services:
+  - type: web
+    name: trato-api
+    runtime: node
+    plan: free            # sube a `starter` si necesitas que los cron jobs corran a diario
+    rootDir: backend
+    autoDeploy: true
+    healthCheckPath: /api/health
+    # --include=dev fuerza las devDependencies (nest CLI, prisma, tsx) aunque NODE_ENV=production.
+    buildCommand: npm ci --include=dev && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm run start:prod
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: trato-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      # Render inyecta PORT automáticamente y main.ts lo lee (config.get('PORT')).
+      - key: CORS_ORIGIN
+        sync: false        # ← pega aquí la URL del frontend en Vercel (p. ej. https://trato.vercel.app)
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
