@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import {
   asPrisma,
@@ -7,6 +7,7 @@ import {
 } from '../../test-utils/prisma-mock';
 import { ContactsService } from '../contacts/contacts.service';
 import { DealsService } from '../deals/deals.service';
+import { ProjectsService } from '../projects/projects.service';
 import { SettingsService } from '../settings/settings.service';
 import { ProposalsService } from './proposals.service';
 
@@ -16,18 +17,21 @@ const OTHER = 'owner-2';
 describe('ProposalsService (aislamiento por ownerId)', () => {
   let prisma: PrismaMock;
   let contacts: { assertOwned: jest.Mock };
-  let deals: { assertOwned: jest.Mock };
+  let deals: { findOne: jest.Mock };
+  let projects: { createFromProposal: jest.Mock };
   let service: ProposalsService;
 
   beforeEach(() => {
     prisma = createPrismaMock();
     contacts = { assertOwned: jest.fn() };
-    deals = { assertOwned: jest.fn() };
+    deals = { findOne: jest.fn() };
+    projects = { createFromProposal: jest.fn() };
     service = new ProposalsService(
       asPrisma(prisma),
       contacts as unknown as ContactsService,
       deals as unknown as DealsService,
       {} as unknown as SettingsService,
+      projects as unknown as ProjectsService,
     );
   });
 
@@ -37,6 +41,7 @@ describe('ProposalsService (aislamiento por ownerId)', () => {
 
       await service.create(OWNER, {
         title: 'Web',
+        contactId: 'k1',
         items: [
           { description: 'Diseño', quantity: 2, unitPrice: 100 },
           { description: 'Hosting', quantity: 1, unitPrice: 50 },
@@ -52,6 +57,7 @@ describe('ProposalsService (aislamiento por ownerId)', () => {
 
     it('valida contacto y oportunidad asociados vía sus servicios', async () => {
       prisma.proposal.create.mockResolvedValue({ id: 'p1' });
+      deals.findOne.mockResolvedValue({ id: 'd1', contactId: 'k1' });
 
       await service.create(OWNER, {
         title: 'Web',
@@ -60,7 +66,16 @@ describe('ProposalsService (aislamiento por ownerId)', () => {
       });
 
       expect(contacts.assertOwned).toHaveBeenCalledWith(OWNER, 'k1');
-      expect(deals.assertOwned).toHaveBeenCalledWith(OWNER, 'd1');
+      expect(deals.findOne).toHaveBeenCalledWith(OWNER, 'd1');
+    });
+
+    it('rechaza si la oportunidad pertenece a otro cliente', async () => {
+      deals.findOne.mockResolvedValue({ id: 'd1', contactId: 'otro' });
+
+      await expect(
+        service.create(OWNER, { title: 'Web', contactId: 'k1', dealId: 'd1' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.proposal.create).not.toHaveBeenCalled();
     });
 
     it('no crea la propuesta si el contacto es de otra cuenta', async () => {
@@ -70,6 +85,65 @@ describe('ProposalsService (aislamiento por ownerId)', () => {
         service.create(OWNER, { title: 'Web', contactId: 'ajeno' }),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(prisma.proposal.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('convertToProject', () => {
+    it('convierte una propuesta ACEPTADA delegando en projects.createFromProposal', async () => {
+      prisma.proposal.findFirst.mockResolvedValue({
+        id: 'p1',
+        status: 'ACCEPTED',
+        contactId: 'k1',
+        title: 'Web',
+        notes: 'detalle',
+      });
+      projects.createFromProposal.mockResolvedValue({ id: 'pr1' });
+
+      await service.convertToProject(OWNER, 'p1');
+
+      expect(projects.createFromProposal).toHaveBeenCalledWith(OWNER, {
+        proposalId: 'p1',
+        contactId: 'k1',
+        name: 'Web',
+        description: 'detalle',
+      });
+    });
+
+    it('rechaza convertir una propuesta que no está aceptada', async () => {
+      prisma.proposal.findFirst.mockResolvedValue({
+        id: 'p1',
+        status: 'DRAFT',
+        contactId: 'k1',
+        title: 'Web',
+      });
+
+      await expect(
+        service.convertToProject(OWNER, 'p1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(projects.createFromProposal).not.toHaveBeenCalled();
+    });
+
+    it('rechaza convertir una propuesta sin cliente', async () => {
+      prisma.proposal.findFirst.mockResolvedValue({
+        id: 'p1',
+        status: 'ACCEPTED',
+        contactId: null,
+        title: 'Web',
+      });
+
+      await expect(
+        service.convertToProject(OWNER, 'p1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(projects.createFromProposal).not.toHaveBeenCalled();
+    });
+
+    it('aborta si la propuesta es de otra cuenta', async () => {
+      prisma.proposal.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.convertToProject(OTHER, 'p1'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(projects.createFromProposal).not.toHaveBeenCalled();
     });
   });
 

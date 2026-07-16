@@ -98,6 +98,15 @@ export class ProposalsController {
     return this.proposals.changeStatus(ownerId, id, dto);
   }
 
+  /** Convierte una propuesta aceptada en proyecto para su cliente. */
+  @Post(':id/convert-to-project')
+  convertToProject(
+    @CurrentUser('accountId') ownerId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.proposals.convertToProject(ownerId, id);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(

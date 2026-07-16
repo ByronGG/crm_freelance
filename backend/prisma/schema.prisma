@@ -140,6 +140,8 @@ model Contact {
 
   deals      Deal[]
   proposals  Proposal[]
+  projects   Project[]
+  invoices   Invoice[]
   activities Activity[]
   tasks      Task[]
 
@@ -228,6 +230,10 @@ model Proposal {
 
   items ProposalItem[]
 
+  // Proyecto generado al aceptar la propuesta (1:1). El vínculo lo crea la
+  // conversión Propuesta aceptada → Proyecto; la FK vive en Project.proposalId.
+  project Project?
+
   @@index([ownerId])
 }
 
@@ -294,15 +300,30 @@ model Project {
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId String
 
-  // Un proyecto suele derivar de una oportunidad ganada.
+  // Cliente dueño del proyecto. Se exige en la capa de servicio; a nivel de BD
+  // es nullable durante la fase de expansión (se poblará con el backfill y se
+  // hará NOT NULL en una migración posterior una vez saneados los datos).
+  // Restrict: no se puede borrar un contacto que aún tenga proyectos.
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  contactId String?
+
+  // Un proyecto puede derivar de una propuesta aceptada (1:1) y/o de una
+  // oportunidad ganada. Ambos vínculos son opcionales e independientes: el
+  // cliente del proyecto es contactId, no depende de ninguno de los dos.
+  proposal   Proposal? @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  proposalId String?   @unique
+
   deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: SetNull)
   dealId String? @unique
 
   milestones  Milestone[]
   invoices    Invoice[]
   timeEntries TimeEntry[]
+  tasks       Task[]
+  activities  Activity[]
 
   @@index([ownerId])
+  @@index([contactId])
 }
 
 // Registro de tiempo dedicado a un proyecto (time-tracking).
@@ -365,7 +386,12 @@ model Activity {
   deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
   dealId String?
 
+  // Proyecto asociado (opcional): permite el historial de actividad del proyecto.
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String?
+
   @@index([ownerId])
+  @@index([projectId])
 }
 
 enum TaskStatus {
@@ -389,8 +415,13 @@ model Task {
   deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
   dealId String?
 
+  // Proyecto asociado (opcional): permite las tareas propias del proyecto.
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String?
+
   @@index([ownerId])
   @@index([dueDate])
+  @@index([projectId])
 }
 
 // ───────────────────────────── invoices ─────────────────────────────
@@ -419,11 +450,20 @@ model Invoice {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String
 
+  // Cliente de la factura. Denormalizado: el servicio lo fija siempre desde
+  // project.contactId (nunca viene del request). Permite listar "facturas del
+  // cliente" sin el salto factura → proyecto → oportunidad. Nullable en la fase
+  // de expansión; se poblará con el backfill. Restrict: no se borra un contacto
+  // con facturas.
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  contactId String?
+
   payments Payment[]
 
   @@unique([ownerId, number])
   @@index([ownerId])
   @@index([status])
+  @@index([contactId])
 }
 
 model Payment {
@@ -443,6 +483,7 @@ model Payment {
 enum TaggableType {
   CONTACT
   DEAL
+  PROJECT
 }
 
 model Tag {
@@ -477,6 +518,8 @@ enum AttachableType {
   CONTACT
   DEAL
   PROJECT
+  PROPOSAL
+  INVOICE
 }
 
 model Attachment {

@@ -1,10 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { ContactsService } from '../contacts/contacts.service';
 import { DealsService } from '../deals/deals.service';
+import { ProjectsService } from '../projects/projects.service';
 import { SettingsService } from '../settings/settings.service';
-import { Proposal } from '../../generated/prisma/client';
+import { Project, Proposal } from '../../generated/prisma/client';
 import { ChangeStatusDto } from './dto/change-status.dto';
 import { CreateProposalDto } from './dto/create-proposal.dto';
 import { ProposalItemDto } from './dto/proposal-item.dto';
@@ -25,6 +30,7 @@ export class ProposalsService {
     private readonly contacts: ContactsService,
     private readonly deals: DealsService,
     private readonly settings: SettingsService,
+    private readonly projects: ProjectsService,
   ) {}
 
   async create(ownerId: string, dto: CreateProposalDto): Promise<Proposal> {
@@ -37,12 +43,35 @@ export class ProposalsService {
         title: dto.title,
         currency: dto.currency ?? 'USD',
         notes: dto.notes ?? null,
-        contactId: dto.contactId ?? null,
+        contactId: dto.contactId,
         dealId: dto.dealId ?? null,
         total: this.computeTotal(items),
         items: { create: items.map((i) => this.toItemData(i)) },
       },
       include: { items: true },
+    });
+  }
+
+  /**
+   * Convierte una propuesta ACEPTADA en un proyecto para su cliente (flujo
+   * Cliente → Propuesta → Proyecto). El proyecto hereda el título y las notas y
+   * queda enlazado a la propuesta (1:1). Delega la creación en ProjectsService.
+   */
+  async convertToProject(ownerId: string, id: string): Promise<Project> {
+    const proposal = await this.findOne(ownerId, id);
+    if (proposal.status !== 'ACCEPTED') {
+      throw new BadRequestException(
+        'Solo se puede convertir una propuesta aceptada',
+      );
+    }
+    if (!proposal.contactId) {
+      throw new BadRequestException('La propuesta no tiene cliente asignado');
+    }
+    return this.projects.createFromProposal(ownerId, {
+      proposalId: proposal.id,
+      contactId: proposal.contactId,
+      name: proposal.title,
+      description: proposal.notes ?? undefined,
     });
   }
 
@@ -192,7 +221,11 @@ export class ProposalsService {
     };
   }
 
-  /** Valida que el contacto y la oportunidad referidos sean de la cuenta. */
+  /**
+   * Valida que el contacto y la oportunidad referidos sean de la cuenta y sean
+   * coherentes: si la oportunidad tiene contacto, debe ser el mismo cliente que
+   * el de la propuesta (impide colgar la propuesta de un deal de otro cliente).
+   */
   private async assertRelations(
     ownerId: string,
     contactId?: string,
@@ -202,7 +235,12 @@ export class ProposalsService {
       await this.contacts.assertOwned(ownerId, contactId);
     }
     if (dealId) {
-      await this.deals.assertOwned(ownerId, dealId);
+      const deal = await this.deals.findOne(ownerId, dealId);
+      if (contactId && deal.contactId && deal.contactId !== contactId) {
+        throw new BadRequestException(
+          'La oportunidad pertenece a un cliente distinto al de la propuesta',
+        );
+      }
     }
   }
 
