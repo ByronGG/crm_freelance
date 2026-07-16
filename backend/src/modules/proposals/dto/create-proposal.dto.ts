@@ -31,12 +31,13 @@ export class CreateProposalDto {
   @MaxLength(2000)
   notes?: string;
 
-  // Contacto asociado (opcional). Se valida que pertenezca a la cuenta.
-  @IsOptional()
+  // Cliente dueño de la propuesta. Obligatorio: toda propuesta pertenece a un
+  // contacto. Se valida que pertenezca a la cuenta.
   @IsUUID()
-  contactId?: string;
+  contactId: string;
 
-  // Oportunidad asociada (opcional). Se valida que pertenezca a la cuenta.
+  // Oportunidad asociada (opcional, pipeline desacoplado). Se valida que
+  // pertenezca a la cuenta y, si tiene contacto, que sea el mismo cliente.
   @IsOptional()
   @IsUUID()
   dealId?: string;

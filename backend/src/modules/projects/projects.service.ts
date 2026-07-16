@@ -68,6 +68,36 @@ export class ProjectsService {
     });
   }
 
+  /**
+   * Crea un proyecto a partir de una propuesta ACEPTADA (conversión
+   * Cliente → Propuesta → Proyecto). Lo invoca ProposalsService, que ya validó
+   * la propiedad de la propuesta y de su cliente; aquí solo se comprueba que la
+   * propuesta no tenga ya un proyecto (proposalId es @unique). El proyecto
+   * hereda el título y las notas de la propuesta y arranca ACTIVE.
+   */
+  async createFromProposal(
+    ownerId: string,
+    params: {
+      proposalId: string;
+      contactId: string;
+      name: string;
+      description?: string;
+    },
+  ): Promise<Project> {
+    await this.assertProposalNotLinked(params.proposalId);
+    return this.prisma.project.create({
+      data: {
+        ownerId,
+        name: params.name,
+        description: params.description ?? null,
+        status: 'ACTIVE',
+        startDate: new Date(),
+        contactId: params.contactId,
+        proposalId: params.proposalId,
+      },
+    });
+  }
+
   findAll(ownerId: string, query: QueryProjectsDto): Promise<Project[]> {
     const { status, contactId, search } = query;
     return this.prisma.project.findMany({
@@ -263,6 +293,20 @@ export class ProjectsService {
     });
     if (existing && existing.id !== exceptProjectId) {
       throw new ConflictException('La oportunidad ya tiene un proyecto');
+    }
+  }
+
+  /** Una propuesta solo puede tener un proyecto (proposalId es @unique). */
+  private async assertProposalNotLinked(
+    proposalId: string,
+    exceptProjectId?: string,
+  ): Promise<void> {
+    const existing = await this.prisma.project.findUnique({
+      where: { proposalId },
+      select: { id: true },
+    });
+    if (existing && existing.id !== exceptProjectId) {
+      throw new ConflictException('La propuesta ya tiene un proyecto');
     }
   }
 }

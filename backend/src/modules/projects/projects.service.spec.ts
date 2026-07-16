@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 
 import {
   asPrisma,
@@ -61,6 +61,48 @@ describe('ProjectsService (aislamiento por ownerId)', () => {
       await expect(service.findOne(OTHER, 'pr1')).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('createFromProposal', () => {
+    it('crea el proyecto enlazado a la propuesta, con su cliente', async () => {
+      prisma.project.findUnique.mockResolvedValue(null);
+      prisma.project.create.mockResolvedValue({ id: 'pr1' });
+
+      await service.createFromProposal(OWNER, {
+        proposalId: 'p1',
+        contactId: 'k1',
+        name: 'Web',
+      });
+
+      expect(prisma.project.findUnique).toHaveBeenCalledWith({
+        where: { proposalId: 'p1' },
+        select: { id: true },
+      });
+      expect(prisma.project.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            ownerId: OWNER,
+            contactId: 'k1',
+            proposalId: 'p1',
+            name: 'Web',
+            status: 'ACTIVE',
+          }),
+        }),
+      );
+    });
+
+    it('rechaza si la propuesta ya tiene un proyecto', async () => {
+      prisma.project.findUnique.mockResolvedValue({ id: 'existente' });
+
+      await expect(
+        service.createFromProposal(OWNER, {
+          proposalId: 'p1',
+          contactId: 'k1',
+          name: 'Web',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.project.create).not.toHaveBeenCalled();
     });
   });
 
