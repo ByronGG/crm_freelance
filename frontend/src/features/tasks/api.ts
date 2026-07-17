@@ -8,6 +8,7 @@ function toPayload(form: TaskForm) {
     dueDate: form.dueDate || null,
     contactId: form.contactId || null,
     dealId: form.dealId || null,
+    projectId: form.projectId || null,
   }
 }
 

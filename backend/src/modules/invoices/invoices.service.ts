@@ -29,10 +29,14 @@ export class InvoicesService {
   ) {}
 
   async create(ownerId: string, dto: CreateInvoiceDto): Promise<Invoice> {
-    await this.projects.assertOwned(ownerId, dto.projectId);
+    // El cliente de la factura se denormaliza SIEMPRE desde el proyecto (nunca
+    // viene del request). getContactId valida además que el proyecto sea de la
+    // cuenta.
+    const contactId = await this.projects.getContactId(ownerId, dto.projectId);
     const base = {
       ownerId,
       projectId: dto.projectId,
+      contactId,
       currency: dto.currency ?? 'USD',
       total: dto.total ?? 0,
       dueDate: dto.dueDate ? new Date(dto.dueDate) : null,

@@ -7,6 +7,7 @@ export interface Task {
   status: TaskStatus
   contactId?: string | null
   dealId?: string | null
+  projectId?: string | null
   createdAt: string
 }
 
@@ -17,4 +18,5 @@ export interface TaskForm {
   status: TaskStatus
   contactId: string
   dealId: string
+  projectId: string
 }

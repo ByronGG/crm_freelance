@@ -7,6 +7,7 @@ import { Modal } from '../../components/ui/Modal'
 import { TextField, fieldInputClass } from '../../components/ui/TextField'
 import { listContacts } from '../contacts/api'
 import { listDeals } from '../deals/api'
+import { listProjects } from '../projects/api'
 import { createTask, updateTask } from './api'
 import type { Task, TaskForm, TaskStatus } from './types'
 
@@ -16,6 +17,7 @@ const EMPTY: TaskForm = {
   status: 'PENDING',
   contactId: '',
   dealId: '',
+  projectId: '',
 }
 
 function fromTask(t: Task): TaskForm {
@@ -25,6 +27,7 @@ function fromTask(t: Task): TaskForm {
     status: t.status,
     contactId: t.contactId ?? '',
     dealId: t.dealId ?? '',
+    projectId: t.projectId ?? '',
   }
 }
 
@@ -47,6 +50,11 @@ export function TaskFormModal({ open, onClose, task }: Props) {
   const deals = useQuery({
     queryKey: ['deals', 'list'],
     queryFn: listDeals,
+    enabled: open,
+  })
+  const projects = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => listProjects(),
     enabled: open,
   })
 
@@ -152,6 +160,22 @@ export function TaskFormModal({ open, onClose, task }: Props) {
             </select>
           </label>
         </div>
+
+        <label className="block">
+          <span className="mb-1.5 block text-sm text-muted">Proyecto</span>
+          <select
+            className={fieldInputClass}
+            value={form.projectId}
+            onChange={(e) => setField('projectId', e.target.value)}
+          >
+            <option value="">Sin proyecto</option>
+            {projects.data?.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {error && (
           <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">

@@ -14,7 +14,7 @@ export class QueryProjectsDto {
   @IsEnum(ProjectStatus, { message: 'Estado no válido' })
   status?: ProjectStatus;
 
-  // Filtra por el contacto de la oportunidad de origen (para la vista 360°).
+  // Filtra por el cliente del proyecto (para la vista 360° del contacto).
   @IsOptional()
   @IsUUID()
   contactId?: string;

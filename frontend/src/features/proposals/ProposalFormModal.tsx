@@ -175,11 +175,19 @@ export function ProposalFormModal({ open, onClose, proposal }: Props) {
   function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    if (!form.contactId) {
+      setError('Elige el cliente de la propuesta.')
+      return
+    }
     save.mutate(form)
   }
 
   const loadingEdit = !!proposal && detail.isLoading
   const total = liveTotal(form.items)
+  // Solo las oportunidades del cliente elegido (o sin cliente asignado).
+  const availableDeals = (deals.data ?? []).filter(
+    (d) => !d.contactId || d.contactId === form.contactId,
+  )
 
   return (
     <Modal
@@ -222,13 +230,26 @@ export function ProposalFormModal({ open, onClose, proposal }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="mb-1.5 block text-sm text-muted">Contacto</span>
+              <span className="mb-1.5 block text-sm text-muted">
+                Cliente <span className="text-red-500">*</span>
+              </span>
               <select
+                required
                 className={fieldInputClass}
                 value={form.contactId}
-                onChange={(e) => setField('contactId', e.target.value)}
+                onChange={(e) => {
+                  // Al cambiar de cliente, limpiamos la oportunidad para no
+                  // dejar una de otro cliente (el backend lo rechazaría).
+                  setForm((f) => ({
+                    ...f,
+                    contactId: e.target.value,
+                    dealId: '',
+                  }))
+                }}
               >
-                <option value="">Sin contacto</option>
+                <option value="" disabled>
+                  Selecciona un cliente
+                </option>
                 {contacts.data?.map((c) => (
                   <option key={c.id} value={c.id}>
                     {[c.firstName, c.lastName].filter(Boolean).join(' ')}
@@ -243,10 +264,11 @@ export function ProposalFormModal({ open, onClose, proposal }: Props) {
               <select
                 className={fieldInputClass}
                 value={form.dealId}
+                disabled={!form.contactId}
                 onChange={(e) => setField('dealId', e.target.value)}
               >
                 <option value="">Sin oportunidad</option>
-                {deals.data?.map((d) => (
+                {availableDeals.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.title}
                   </option>

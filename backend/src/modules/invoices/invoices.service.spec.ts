@@ -14,12 +14,12 @@ const OTHER = 'owner-2';
 
 describe('InvoicesService (aislamiento por ownerId)', () => {
   let prisma: PrismaMock;
-  let projects: { assertOwned: jest.Mock };
+  let projects: { getContactId: jest.Mock };
   let service: InvoicesService;
 
   beforeEach(() => {
     prisma = createPrismaMock();
-    projects = { assertOwned: jest.fn() };
+    projects = { getContactId: jest.fn() };
     service = new InvoicesService(
       asPrisma(prisma),
       projects as unknown as ProjectsService,
@@ -28,22 +28,27 @@ describe('InvoicesService (aislamiento por ownerId)', () => {
   });
 
   describe('create', () => {
-    it('valida el proyecto de origen vía ProjectsService y usa el ownerId', async () => {
+    it('deriva el cliente del proyecto y lo fija en la factura', async () => {
+      projects.getContactId.mockResolvedValue('k1');
       prisma.invoice.count.mockResolvedValue(0);
       prisma.invoice.create.mockResolvedValue({ id: 'i1' });
 
       await service.create(OWNER, { projectId: 'pr1', total: 100 });
 
-      expect(projects.assertOwned).toHaveBeenCalledWith(OWNER, 'pr1');
+      expect(projects.getContactId).toHaveBeenCalledWith(OWNER, 'pr1');
       expect(prisma.invoice.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ ownerId: OWNER, projectId: 'pr1' }),
+          data: expect.objectContaining({
+            ownerId: OWNER,
+            projectId: 'pr1',
+            contactId: 'k1',
+          }),
         }),
       );
     });
 
     it('no crea la factura si el proyecto es de otra cuenta', async () => {
-      projects.assertOwned.mockRejectedValue(new NotFoundException());
+      projects.getContactId.mockRejectedValue(new NotFoundException());
 
       await expect(
         service.create(OWNER, { projectId: 'ajeno', total: 100 }),

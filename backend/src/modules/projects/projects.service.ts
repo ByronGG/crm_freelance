@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { ContactsService } from '../contacts/contacts.service';
 import { DealsService } from '../deals/deals.service';
 import { Milestone, Project, TimeEntry } from '../../generated/prisma/client';
 import { CreateMilestoneDto } from './dto/create-milestone.dto';
@@ -24,13 +25,11 @@ export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly deals: DealsService,
+    private readonly contacts: ContactsService,
   ) {}
 
   async create(ownerId: string, dto: CreateProjectDto): Promise<Project> {
-    if (dto.dealId) {
-      await this.deals.assertOwned(ownerId, dto.dealId);
-      await this.assertDealNotLinked(dto.dealId);
-    }
+    await this.assertRelations(ownerId, dto.contactId, dto.dealId);
     return this.prisma.project.create({
       data: {
         ownerId,
@@ -39,6 +38,7 @@ export class ProjectsService {
         status: dto.status ?? 'ACTIVE',
         startDate: dto.startDate ? new Date(dto.startDate) : null,
         endDate: dto.endDate ? new Date(dto.endDate) : null,
+        contactId: dto.contactId,
         dealId: dto.dealId ?? null,
       },
     });
@@ -56,6 +56,11 @@ export class ProjectsService {
         'Solo se puede convertir una oportunidad en etapa Ganada',
       );
     }
+    if (!deal.contactId) {
+      throw new BadRequestException(
+        'La oportunidad no tiene cliente asignado; asígnalo antes de convertir',
+      );
+    }
     await this.assertDealNotLinked(dealId);
     return this.prisma.project.create({
       data: {
@@ -63,6 +68,7 @@ export class ProjectsService {
         name: deal.title,
         status: 'ACTIVE',
         startDate: new Date(),
+        contactId: deal.contactId,
         dealId,
       },
     });
@@ -104,8 +110,9 @@ export class ProjectsService {
       where: {
         ownerId,
         ...(status ? { status } : {}),
-        // El proyecto deriva de una oportunidad; filtramos por su contacto.
-        ...(contactId ? { deal: { contactId } } : {}),
+        // El proyecto tiene su propio cliente: filtramos por contactId directo
+        // (incluye los proyectos sueltos, no solo los derivados de oportunidad).
+        ...(contactId ? { contactId } : {}),
         ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
       },
       include: { deal: true },
@@ -139,9 +146,29 @@ export class ProjectsService {
     id: string,
     dto: UpdateProjectDto,
   ): Promise<Project> {
-    await this.assertOwned(ownerId, id);
+    const current = await this.prisma.project.findFirst({
+      where: { id, ownerId },
+      select: { id: true, contactId: true },
+    });
+    if (!current) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+    if (dto.contactId) {
+      await this.contacts.assertOwned(ownerId, dto.contactId);
+    }
     if (dto.dealId) {
-      await this.deals.assertOwned(ownerId, dto.dealId);
+      const deal = await this.deals.findOne(ownerId, dto.dealId);
+      // Coherencia con el cliente efectivo (el nuevo si se cambia, si no el actual).
+      const effectiveContactId = dto.contactId ?? current.contactId;
+      if (
+        deal.contactId &&
+        effectiveContactId &&
+        deal.contactId !== effectiveContactId
+      ) {
+        throw new BadRequestException(
+          'La oportunidad pertenece a un cliente distinto al del proyecto',
+        );
+      }
       await this.assertDealNotLinked(dto.dealId, id);
     }
     return this.prisma.project.update({
@@ -158,6 +185,7 @@ export class ProjectsService {
         ...(dto.endDate !== undefined
           ? { endDate: new Date(dto.endDate) }
           : {}),
+        ...(dto.contactId !== undefined ? { contactId: dto.contactId } : {}),
         ...(dto.dealId !== undefined ? { dealId: dto.dealId } : {}),
       },
     });
@@ -254,6 +282,28 @@ export class ProjectsService {
   // ───────────────────────────── helpers ─────────────────────────────
 
   /**
+   * Valida el cliente y, si se indica, la oportunidad: que ambos sean de la
+   * cuenta, que la oportunidad no tenga ya un proyecto y que su cliente coincida
+   * con el del proyecto (impide colgar el proyecto de un deal de otro cliente).
+   */
+  private async assertRelations(
+    ownerId: string,
+    contactId: string,
+    dealId?: string,
+  ): Promise<void> {
+    await this.contacts.assertOwned(ownerId, contactId);
+    if (dealId) {
+      const deal = await this.deals.findOne(ownerId, dealId);
+      if (deal.contactId && deal.contactId !== contactId) {
+        throw new BadRequestException(
+          'La oportunidad pertenece a un cliente distinto al del proyecto',
+        );
+      }
+      await this.assertDealNotLinked(dealId);
+    }
+  }
+
+  /**
    * Verifica que el proyecto exista y pertenezca a la cuenta. Público para que
    * otros módulos (invoices) validen el projectId que reciben.
    */
@@ -265,6 +315,22 @@ export class ProjectsService {
     if (!found) {
       throw new NotFoundException('Proyecto no encontrado');
     }
+  }
+
+  /**
+   * Devuelve el cliente del proyecto (validando que sea de la cuenta). Público
+   * para que invoices denormalice el contactId de la factura desde el proyecto,
+   * sin tocar la tabla Project. Puede ser null en proyectos legacy sin cliente.
+   */
+  async getContactId(ownerId: string, id: string): Promise<string | null> {
+    const project = await this.prisma.project.findFirst({
+      where: { id, ownerId },
+      select: { id: true, contactId: true },
+    });
+    if (!project) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+    return project.contactId;
   }
 
   /** Verifica que el hito exista dentro de un proyecto de la cuenta. */

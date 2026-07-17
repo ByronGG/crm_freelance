@@ -16,6 +16,11 @@ export class QueryTasksDto {
   @IsUUID()
   dealId?: string;
 
+  // Filtra las tareas de un proyecto (para el detalle del proyecto).
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
+
   // Tareas que vencen antes de esta fecha (útil para "pendientes del día").
   @IsOptional()
   @IsISO8601({}, { message: 'La fecha no es válida' })

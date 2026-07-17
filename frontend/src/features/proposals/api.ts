@@ -80,6 +80,17 @@ export async function deleteProposal(id: string): Promise<void> {
   await api.delete(`/proposals/${id}`)
 }
 
+/**
+ * Convierte una propuesta aceptada en proyecto para su cliente. Devuelve el
+ * proyecto creado (el backend hereda título y notas y enlaza ambos 1:1).
+ */
+export async function convertToProject(id: string): Promise<{ id: string }> {
+  const { data } = await api.post<{ id: string }>(
+    `/proposals/${id}/convert-to-project`,
+  )
+  return data
+}
+
 /** Descarga la propuesta en PDF (blob vía axios para llevar el token). */
 export async function downloadProposalPdf(
   id: string,

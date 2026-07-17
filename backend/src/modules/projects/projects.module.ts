@@ -1,15 +1,18 @@
 import { Module } from '@nestjs/common';
 
+import { ContactsModule } from '../contacts/contacts.module';
 import { DealsModule } from '../deals/deals.module';
 import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
 
 // Módulo projects: proyectos contratados e hitos.
-// Importa DealsModule para consultar la oportunidad de origen (conversión
-// de oportunidad ganada → proyecto) a través de su servicio.
-// Expone ProjectsService para que invoices lo consuma (factura desde proyecto).
+// Importa ContactsModule para validar el cliente del proyecto y DealsModule
+// para consultar la oportunidad de origen (conversión oportunidad ganada →
+// proyecto), siempre a través de sus servicios.
+// Expone ProjectsService para que invoices lo consuma (factura desde proyecto)
+// y proposals lo use (conversión propuesta aceptada → proyecto).
 @Module({
-  imports: [DealsModule],
+  imports: [ContactsModule, DealsModule],
   controllers: [ProjectsController],
   providers: [ProjectsService],
   exports: [ProjectsService],
