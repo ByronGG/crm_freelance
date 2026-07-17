@@ -26,7 +26,16 @@ services:
     healthCheckPath: /api/health
     # --include=dev fuerza las devDependencies (nest CLI, prisma, tsx) aunque NODE_ENV=production.
     buildCommand: npm ci --include=dev && npx prisma generate && npm run build
-    startCommand: npx prisma migrate deploy && npm run start:prod
+    # Las migraciones NO corren en el arranque, a propósito: un `migrate deploy`
+    # que falle (p. ej. la guarda de una migración) encadenado con `&&` dejaría
+    # el servicio sin bootear. En el plan `free` no existe `preDeployCommand`, así
+    # que las migraciones de esquema se aplican A MANO contra la BD de prod ANTES
+    # de desplegar, desde backend/:
+    #   DATABASE_URL="<connectionString externa de trato-db>" npx prisma migrate deploy
+    # Si subes a `starter` (o superior), mueve las migraciones a un
+    # `preDeployCommand: npx prisma migrate deploy` (corre en una instancia
+    # aparte; si falla, el deploy falla pero la versión anterior sigue viva).
+    startCommand: npm run start:prod
     envVars:
       - key: DATABASE_URL
         fromDatabase:
