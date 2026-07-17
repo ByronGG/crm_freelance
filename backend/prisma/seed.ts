@@ -187,6 +187,7 @@ async function main(): Promise<void> {
       description: 'Nuevo sitio corporativo.',
       status: 'ACTIVE',
       startDate: daysFromNow(-8),
+      contactId: ana.id,
       dealId: wonDeal.id,
       milestones: {
         create: [
@@ -203,6 +204,7 @@ async function main(): Promise<void> {
     data: {
       ownerId,
       projectId: project.id,
+      contactId: ana.id,
       number: 'INV-0001',
       status: 'PAID',
       currency: 'EUR',
@@ -223,6 +225,7 @@ async function main(): Promise<void> {
     data: {
       ownerId,
       projectId: project.id,
+      contactId: ana.id,
       number: 'INV-0002',
       status: 'ISSUED',
       currency: 'EUR',

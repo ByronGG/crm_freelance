@@ -320,9 +320,10 @@ export class ProjectsService {
   /**
    * Devuelve el cliente del proyecto (validando que sea de la cuenta). Público
    * para que invoices denormalice el contactId de la factura desde el proyecto,
-   * sin tocar la tabla Project. Puede ser null en proyectos legacy sin cliente.
+   * sin tocar la tabla Project. Project.contactId es NOT NULL, así que siempre
+   * devuelve un id.
    */
-  async getContactId(ownerId: string, id: string): Promise<string | null> {
+  async getContactId(ownerId: string, id: string): Promise<string> {
     const project = await this.prisma.project.findFirst({
       where: { id, ownerId },
       select: { id: true, contactId: true },
