@@ -13,12 +13,12 @@ hasta los proyectos contratados y su facturación.
 
 | Área | Qué incluye |
 | ---- | ----------- |
-| Contactos y empresas | CRUD con búsqueda, vínculo contacto ↔ empresa, perfil **360°** (datos + timeline + oportunidades + propuestas + proyectos + etiquetas + adjuntos) |
-| Pipeline de ventas | Tablero **kanban** con 6 etapas y drag & drop, motivo de pérdida, historial de cambios de etapa |
-| Propuestas | Ítems (descripción, cantidad, precio) con total calculado; estados Borrador → Enviada → Aceptada/Rechazada |
-| Proyectos | Conversión automática de oportunidad **ganada** en proyecto; hitos con fechas y estado |
-| Facturación | Factura desde proyecto, numeración automática (`INV-0001`…), pagos parciales (auto-marca Pagada), **exportación a PDF** con los datos del perfil de empresa |
-| Actividades y tareas | Notas/llamadas/correos/reuniones ligadas a contacto u oportunidad; timeline cronológica; tareas con vencimiento |
+| Contactos y empresas | CRUD con búsqueda, vínculo contacto ↔ empresa, perfil **360°** (datos + timeline + oportunidades + propuestas + proyectos + etiquetas + adjuntos). El contacto es la **raíz del modelo**: todo documento cuelga de él |
+| Pipeline de ventas | Tablero **kanban** con 6 etapas y drag & drop, motivo de pérdida, historial de cambios de etapa. **Desacoplado**: es seguimiento opcional, ni propuestas ni proyectos dependen de él |
+| Propuestas | Ítems (descripción, cantidad, precio) con total calculado; **cliente obligatorio**; estados Borrador → Enviada → Aceptada/Rechazada; al aceptarla se **convierte en proyecto** con un clic |
+| Proyectos | **Cliente obligatorio**; nacen sueltos, de una **propuesta aceptada** o de una **oportunidad ganada** (1:1 en ambos casos); hitos con fechas y estado |
+| Facturación | Factura desde proyecto (**hereda su cliente**), numeración automática (`INV-0001`…), pagos parciales (auto-marca Pagada), **exportación a PDF** con los datos del perfil de empresa |
+| Actividades y tareas | Notas/llamadas/correos/reuniones ligadas a contacto, oportunidad **o proyecto**; timeline cronológica; tareas con vencimiento |
 | Etiquetas | Tags de color reutilizables en contactos y oportunidades, con filtro en el listado |
 | Adjuntos | Referencias por URL (Drive, Dropbox…) en contactos, oportunidades y proyectos |
 | Notificaciones | Campana in-app con contador; jobs diarios que avisan de tareas y facturas vencidas |
@@ -30,38 +30,46 @@ hasta los proyectos contratados y su facturación.
 
 ## Flujo de uso
 
-1. **Contacto** — alta de la persona (y su empresa). Su ficha 360° concentra todo lo demás.
-2. **Oportunidad** — se abre en el kanban y avanza por etapas; las actividades y tareas registran el seguimiento.
-3. **Propuesta** — cotización con ítems y total; al aceptarse, la oportunidad se marca ganada.
-4. **Proyecto** — una oportunidad ganada se convierte en proyecto con un clic; se le añaden hitos.
-5. **Factura** — se emite desde el proyecto, se registran pagos y se descarga en PDF.
+El **cliente es la raíz**: toda propuesta, proyecto y factura debe poder
+responder «¿de qué cliente es?» sin saltos frágiles.
+
+1. **Contacto (cliente)** — alta de la persona (y su empresa). Su ficha 360° concentra todo lo demás.
+2. **Propuesta** — cotización con ítems y total, **siempre de un cliente**; al marcarla Aceptada se convierte en proyecto con un clic.
+3. **Proyecto** — del cliente. Puede nacer de una propuesta aceptada, de una oportunidad ganada o suelto (eligiendo el cliente a mano); se le añaden hitos, tareas y tiempo.
+4. **Factura** — se emite desde el proyecto y **hereda su cliente**; se registran pagos y se descarga en PDF.
+5. **Oportunidad** *(opcional)* — el kanban es seguimiento comercial **desacoplado**: útil para trabajar el pipeline, pero nada depende de él.
 
 ### Diagrama del ciclo y relaciones entre módulos
 
-El flujo comercial (línea continua) va creando la siguiente etapa; la conversión
-de oportunidad a proyecto está **cerrada por la puerta `Deal = WON`** (solo una
-oportunidad ganada puede convertirse, y una sola vez: `Project.dealId` es único).
-Las líneas punteadas son relaciones transversales o de solo lectura. Todo queda
-aislado por `ownerId`.
+Todo cuelga del contacto (líneas continuas). Un proyecto puede originarse por
+dos puertas, ambas 1:1 y excluyentes entre sí: **`Proposal = ACCEPTED`**
+(`Project.proposalId` es único) o **`Deal = WON`** (`Project.dealId` es único).
+Las líneas punteadas son relaciones transversales, opcionales o de solo lectura.
+Todo queda aislado por `ownerId`.
 
 ```mermaid
 flowchart LR
   subgraph cuenta["Cuenta · ownerId aísla todos los datos"]
     direction LR
-    C["Contactos<br/>Contact · Company"]
-    D["Pipeline<br/>Deal · valor + etapa"]
-    P["Propuesta<br/>Proposal · ítems"]
-    PR["Proyectos<br/>Project · dealId único"]
-    F["Facturas<br/>Invoice · Payment"]
+    C["Contactos<br/>Contact · Company<br/>raíz del modelo"]
+    P["Propuesta<br/>Proposal · ítems<br/>contactId requerido"]
+    PR["Proyectos<br/>Project<br/>contactId requerido"]
+    F["Facturas<br/>Invoice · Payment<br/>contactId heredado"]
+    D["Pipeline · opcional<br/>Deal · valor + etapa"]
 
-    C --> D --> P
-    P -->|Deal = WON| PR
+    C --> P
+    C --> PR
+    C -.-> D
+    P -->|Proposal = ACCEPTED| PR
+    D -.->|Deal = WON| PR
     PR -->|emite| F
+    C --> F
 
     T["Tareas y Actividades<br/>Task / Activity"]
     N["Notificaciones<br/>campana in-app"]
     C -.-> T
     D -.-> T
+    PR -.-> T
     T -->|al vencer| N
     F -.->|vencida| N
 
@@ -73,11 +81,30 @@ flowchart LR
     F -.-> DB
   end
 
-  classDef gate fill:#d1fae5,stroke:#059669,color:#065f46;
+  classDef root fill:#d1fae5,stroke:#059669,color:#065f46;
   classDef read fill:#eef2ff,stroke:#6366f1,color:#3730a3;
-  class PR gate;
+  class C root;
   class DB read;
 ```
+
+**Integridad relacional (reglas que aplican los servicios):**
+
+- `Proposal.contactId` y `Project.contactId` son **obligatorios**; la API rechaza
+  crearlos sin cliente.
+- `Invoice.contactId` **nunca viene del request**: el servicio lo deriva siempre
+  del proyecto (`ProjectsService.getContactId`). Está denormalizado a propósito —
+  una factura es un documento histórico y conserva el cliente del momento en que
+  se emitió.
+- **Coherencia**: si una propuesta o un proyecto referencian una oportunidad, esa
+  oportunidad debe ser del mismo cliente (si no, `400`). Convertir una
+  oportunidad ganada exige que tenga cliente asignado.
+- `Task`/`Activity` aceptan `contactId`, `dealId` y `projectId`, todos opcionales
+  e independientes: son anotaciones flexibles y **no** se les exige coherencia
+  cruzada.
+- Borrar un contacto con **proyectos o facturas** está **bloqueado**
+  (`onDelete: Restrict`): hay que reasignarlos o borrarlos antes. Las
+  **propuestas** aún usan `SetNull` (quedarían sin cliente); la migración
+  *contract* pendiente lo endurece a `Restrict`.
 
 Los jobs programados (diarios y al arrancar el servidor) detectan tareas y
 facturas vencidas y generan avisos en la campana, con deduplicación para que
@@ -153,6 +180,15 @@ actividad, campana de notificaciones, búsqueda global, etiquetas y adjuntos).
 - **PDF de facturas:** se genera en el backend (`pdfkit`) en
   `GET /api/invoices/:id/pdf`, tomando el perfil de empresa del módulo
   `settings` a través de su servicio exportado.
+- **Eje cliente en fase *expand*:** `Project.contactId`, `Invoice.contactId` y
+  `Proposal.contactId` se añadieron con migraciones **expand** (columna nullable
+  + backfill de lo derivable), porque forzar `NOT NULL` de golpe habría roto la
+  migración sobre datos reales. Hoy la obligatoriedad **se aplica en la capa de
+  servicio**, no en la BD. Quedan filas legacy sin cliente; una vez saneadas con
+  `backend/prisma/scripts/sanitize-legacy-clients.sql`, la migración **contract**
+  (`backend/prisma/scripts/contract-not-null.sql`) añade el `NOT NULL` definitivo.
+  Ojo: el `contactId` de las facturas está denormalizado, así que reasignar el
+  cliente de un proyecto **no** actualiza sus facturas — el script las re-deriva.
 
 ## Puesta en marcha (desarrollo local)
 

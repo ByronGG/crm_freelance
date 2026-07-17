@@ -9,7 +9,9 @@ export interface Project {
   status: ProjectStatus
   startDate?: string | null
   endDate?: string | null
+  contactId?: string | null
   dealId?: string | null
+  proposalId?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -54,6 +56,7 @@ export interface ProjectForm {
   status: ProjectStatus
   startDate: string
   endDate: string
+  contactId: string
 }
 
 /** Campos del formulario de hito. */

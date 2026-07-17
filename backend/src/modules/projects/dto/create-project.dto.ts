@@ -34,8 +34,14 @@ export class CreateProjectDto {
   @IsISO8601({}, { message: 'La fecha de fin no es válida' })
   endDate?: string;
 
+  // Cliente dueño del proyecto. Obligatorio: todo proyecto pertenece a un
+  // contacto. Se valida que pertenezca a la cuenta.
+  @IsUUID()
+  contactId: string;
+
   // Oportunidad de la que deriva el proyecto (opcional). Se valida que sea de
-  // la cuenta y que no tenga ya un proyecto asociado.
+  // la cuenta, que no tenga ya un proyecto y que su cliente coincida con
+  // contactId. (El vínculo con una propuesta se crea al convertirla, no aquí.)
   @IsOptional()
   @IsUUID()
   dealId?: string;

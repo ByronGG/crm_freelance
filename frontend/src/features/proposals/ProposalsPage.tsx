@@ -1,6 +1,16 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, FileText, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { AxiosError } from 'axios'
+import {
+  Briefcase,
+  Download,
+  FileText,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from 'lucide-react'
 
 import { Button } from '../../components/ui/Button'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
@@ -16,6 +26,7 @@ import {
 } from './constants'
 import {
   changeStatus,
+  convertToProject,
   deleteProposal,
   downloadProposalPdf,
   listProposals,
@@ -30,12 +41,14 @@ function relName(p: Proposal): string {
 
 export function ProposalsPage() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const debounced = useDebounce(search)
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | ''>('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Proposal | null>(null)
   const [deleting, setDeleting] = useState<Proposal | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['proposals', { status: statusFilter, search: debounced }],
@@ -63,6 +76,25 @@ export function ProposalsPage() {
 
   const pdf = useMutation({
     mutationFn: (p: Proposal) => downloadProposalPdf(p.id, p.title),
+  })
+
+  const convert = useMutation({
+    mutationFn: (id: string) => convertToProject(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposals'] })
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      navigate('/projects')
+    },
+    onError: (err) => {
+      const status = (err as AxiosError)?.response?.status
+      setActionError(
+        status === 409
+          ? 'Esta propuesta ya tiene un proyecto.'
+          : status === 400
+            ? 'Solo se puede convertir una propuesta aceptada con cliente.'
+            : 'No se pudo convertir la propuesta en proyecto.',
+      )
+    },
   })
 
   const proposals = data ?? []
@@ -115,6 +147,12 @@ export function ProposalsPage() {
           ))}
         </select>
       </div>
+
+      {actionError && (
+        <p className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">
+          {actionError}
+        </p>
+      )}
 
       <div className="mt-4 overflow-hidden rounded-xl border border-line bg-surface">
         {isLoading && (
@@ -184,6 +222,21 @@ export function ProposalsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
+                        {p.status === 'ACCEPTED' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActionError(null)
+                              convert.mutate(p.id)
+                            }}
+                            disabled={convert.isPending}
+                            aria-label={`Convertir ${p.title} en proyecto`}
+                            title="Convertir en proyecto"
+                            className="grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-app hover:text-brand-fg disabled:opacity-50"
+                          >
+                            <Briefcase size={16} />
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => pdf.mutate(p)}

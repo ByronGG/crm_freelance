@@ -7,6 +7,7 @@ import {
 } from '../../test-utils/prisma-mock';
 import { ContactsService } from '../contacts/contacts.service';
 import { DealsService } from '../deals/deals.service';
+import { ProjectsService } from '../projects/projects.service';
 import { ActivitiesService } from './activities.service';
 
 const OWNER = 'owner-1';
@@ -16,16 +17,19 @@ describe('ActivitiesService (aislamiento y validación de relaciones)', () => {
   let prisma: PrismaMock;
   let contacts: { assertOwned: jest.Mock };
   let deals: { assertOwned: jest.Mock };
+  let projects: { assertOwned: jest.Mock };
   let service: ActivitiesService;
 
   beforeEach(() => {
     prisma = createPrismaMock();
     contacts = { assertOwned: jest.fn() };
     deals = { assertOwned: jest.fn() };
+    projects = { assertOwned: jest.fn() };
     service = new ActivitiesService(
       asPrisma(prisma),
       contacts as unknown as ContactsService,
       deals as unknown as DealsService,
+      projects as unknown as ProjectsService,
     );
   });
 
@@ -40,17 +44,28 @@ describe('ActivitiesService (aislamiento y validación de relaciones)', () => {
       });
     });
 
-    it('valida el contacto y la oportunidad asociados vía sus servicios', async () => {
+    it('valida el contacto, la oportunidad y el proyecto vía sus servicios', async () => {
       prisma.activity.create.mockResolvedValue({ id: 'a1' });
 
       await service.create(OWNER, {
         content: 'Nota',
         contactId: 'k1',
         dealId: 'd1',
+        projectId: 'pr1',
       });
 
       expect(contacts.assertOwned).toHaveBeenCalledWith(OWNER, 'k1');
       expect(deals.assertOwned).toHaveBeenCalledWith(OWNER, 'd1');
+      expect(projects.assertOwned).toHaveBeenCalledWith(OWNER, 'pr1');
+    });
+
+    it('no crea la actividad si el proyecto asociado es de otra cuenta', async () => {
+      projects.assertOwned.mockRejectedValue(new NotFoundException());
+
+      await expect(
+        service.create(OWNER, { content: 'Nota', projectId: 'ajeno' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.activity.create).not.toHaveBeenCalled();
     });
 
     it('no crea la actividad si el contacto asociado es de otra cuenta', async () => {

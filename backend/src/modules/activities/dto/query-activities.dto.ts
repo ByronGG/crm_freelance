@@ -15,4 +15,9 @@ export class QueryActivitiesDto {
   @IsOptional()
   @IsUUID()
   dealId?: string;
+
+  // Filtra la actividad de un proyecto (para el detalle del proyecto).
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
 }

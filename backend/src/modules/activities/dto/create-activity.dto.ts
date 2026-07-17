@@ -29,4 +29,9 @@ export class CreateActivityDto {
   @IsOptional()
   @IsUUID()
   dealId?: string;
+
+  // Proyecto asociado (opcional). Se valida que pertenezca a la cuenta.
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
 }

@@ -38,6 +38,7 @@ function projectPayload(form: ProjectForm) {
     status: form.status,
     startDate: form.startDate || null,
     endDate: form.endDate || null,
+    contactId: form.contactId || undefined,
   }
 }
 

@@ -12,6 +12,7 @@ import {
   fieldInputClass,
 } from '../../components/ui/TextField'
 import { formatDate } from '../../lib/format'
+import { listContacts } from '../contacts/api'
 import { PROJECT_STATUSES, PROJECT_STATUS_LABEL } from './constants'
 import {
   addMilestone,
@@ -54,6 +55,7 @@ const EMPTY: ProjectForm = {
   status: 'ACTIVE',
   startDate: '',
   endDate: '',
+  contactId: '',
 }
 
 const EMPTY_MILESTONE: MilestoneForm = {
@@ -69,6 +71,7 @@ function fromProject(p: Project): ProjectForm {
     status: p.status,
     startDate: p.startDate ? p.startDate.slice(0, 10) : '',
     endDate: p.endDate ? p.endDate.slice(0, 10) : '',
+    contactId: p.contactId ?? '',
   }
 }
 
@@ -90,6 +93,16 @@ export function ProjectFormModal({ open, onClose, project }: Props) {
     queryFn: () => getProject(project!.id),
     enabled: open && !!project,
   })
+
+  const contacts = useQuery({
+    queryKey: ['contacts', ''],
+    queryFn: () => listContacts(),
+    enabled: open,
+  })
+
+  // Si el proyecto deriva de una oportunidad o propuesta, su cliente lo fija el
+  // origen y no se puede cambiar aquí.
+  const clientLocked = !!project && (!!project.dealId || !!project.proposalId)
 
   useEffect(() => {
     if (!open) return
@@ -157,6 +170,10 @@ export function ProjectFormModal({ open, onClose, project }: Props) {
   function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    if (!form.contactId) {
+      setError('Elige el cliente del proyecto.')
+      return
+    }
     save.mutate(form)
   }
 
@@ -201,6 +218,33 @@ export function ProjectFormModal({ open, onClose, project }: Props) {
             </select>
           </label>
         </div>
+
+        <label className="block">
+          <span className="mb-1.5 block text-sm text-muted">
+            Cliente <span className="text-red-500">*</span>
+          </span>
+          <select
+            required
+            className={fieldInputClass}
+            value={form.contactId}
+            disabled={clientLocked}
+            onChange={(e) => setField('contactId', e.target.value)}
+          >
+            <option value="" disabled>
+              Selecciona un cliente
+            </option>
+            {contacts.data?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {[c.firstName, c.lastName].filter(Boolean).join(' ')}
+              </option>
+            ))}
+          </select>
+          {clientLocked && (
+            <span className="mt-1 block text-xs text-subtle">
+              El cliente lo define el origen del proyecto.
+            </span>
+          )}
+        </label>
 
         <div className="grid grid-cols-2 gap-3">
           <TextField

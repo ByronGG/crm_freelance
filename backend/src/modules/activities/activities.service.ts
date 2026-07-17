@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ContactsService } from '../contacts/contacts.service';
 import { DealsService } from '../deals/deals.service';
+import { ProjectsService } from '../projects/projects.service';
 import { Activity } from '../../generated/prisma/client';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { QueryActivitiesDto } from './dto/query-activities.dto';
@@ -18,10 +19,16 @@ export class ActivitiesService {
     private readonly prisma: PrismaService,
     private readonly contacts: ContactsService,
     private readonly deals: DealsService,
+    private readonly projects: ProjectsService,
   ) {}
 
   async create(ownerId: string, dto: CreateActivityDto): Promise<Activity> {
-    await this.assertRelations(ownerId, dto.contactId, dto.dealId);
+    await this.assertRelations(
+      ownerId,
+      dto.contactId,
+      dto.dealId,
+      dto.projectId,
+    );
     return this.prisma.activity.create({
       data: {
         ownerId,
@@ -29,6 +36,7 @@ export class ActivitiesService {
         content: dto.content,
         contactId: dto.contactId ?? null,
         dealId: dto.dealId ?? null,
+        projectId: dto.projectId ?? null,
       },
     });
   }
@@ -38,13 +46,14 @@ export class ActivitiesService {
    * contacto sirve de timeline cronológica del contacto.
    */
   findAll(ownerId: string, query: QueryActivitiesDto): Promise<Activity[]> {
-    const { type, contactId, dealId } = query;
+    const { type, contactId, dealId, projectId } = query;
     return this.prisma.activity.findMany({
       where: {
         ownerId,
         ...(type ? { type } : {}),
         ...(contactId ? { contactId } : {}),
         ...(dealId ? { dealId } : {}),
+        ...(projectId ? { projectId } : {}),
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -66,7 +75,12 @@ export class ActivitiesService {
     dto: UpdateActivityDto,
   ): Promise<Activity> {
     await this.assertOwned(ownerId, id);
-    await this.assertRelations(ownerId, dto.contactId, dto.dealId);
+    await this.assertRelations(
+      ownerId,
+      dto.contactId,
+      dto.dealId,
+      dto.projectId,
+    );
     return this.prisma.activity.update({
       where: { id },
       data: {
@@ -74,6 +88,7 @@ export class ActivitiesService {
         ...(dto.content !== undefined ? { content: dto.content } : {}),
         ...(dto.contactId !== undefined ? { contactId: dto.contactId } : {}),
         ...(dto.dealId !== undefined ? { dealId: dto.dealId } : {}),
+        ...(dto.projectId !== undefined ? { projectId: dto.projectId } : {}),
       },
     });
   }
@@ -87,12 +102,16 @@ export class ActivitiesService {
     ownerId: string,
     contactId?: string,
     dealId?: string,
+    projectId?: string,
   ): Promise<void> {
     if (contactId) {
       await this.contacts.assertOwned(ownerId, contactId);
     }
     if (dealId) {
       await this.deals.assertOwned(ownerId, dealId);
+    }
+    if (projectId) {
+      await this.projects.assertOwned(ownerId, projectId);
     }
   }
 
